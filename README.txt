@@ -2,6 +2,7 @@ Referential Links:
 - https://www.digitalocean.com/community/tutorials/como-instalar-mongodb-en-ubuntu-16-04-es
 - https://medium.com/@patdhlk/how-to-install-go-1-9-1-on-ubuntu-16-04-ee64c073cd79
 - https://www.thepolyglotdeveloper.com/2017/03/authenticate-a-golang-api-with-json-web-tokens/
+- https://thenewstack.io/make-a-restful-json-api-go/
 
 **** Installation of MongoDB ****
 
