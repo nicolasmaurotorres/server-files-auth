@@ -8,73 +8,100 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func validateLoginRequest(r *http.Request, v InputValidation) error {
-	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
-		return err
-	}
-	defer r.Body.Close()
-	// peform validation on the InputValidation implementation
-	return v.Validate(r)
-}
-
-func generateToken(cat int, ) jwtToken {
-	var key []byte
-
-	switch cat {
-	case categoryDoctor:
-		key = signingKeyDoctor
-		//TODO buscar en MongoDB la clave del usuario doctor
-		break
-	case categoryPladema:
-		key = signingKeyPladema
-		//TODO buscar en MongoDB la clave del usuario pladema
-		break
-	case categoryAdmin:
-		if !adminLoguedIn {
-			key = signingKeyAdmin
-			//TODO buscar en MongoDB la clave del usuario
-		} else {
-			panic("DOUBLE ADMIN LOGUED")
-		}
-		break
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"password": user.Password,
-	})
-	tokenString, error := token.SignedString(key)
-	if error != nil {
-		fmt.Println(error)
-	}
-	json.NewEncoder(w).Encode(JwtToken{Token: tokenString})
-
-	return toReturn
-}
-
 func isValidToken(token jwtToken, cat int) bool {
 	return false
 }
 
-func loginPerson(cat int) jwtToken{
-	user userLoginRequest
-	err := validateLoginRequest(r,user)
-	if (err == nil) {
-		token := generateToken(user,REQUEST_LOGIN_DOCTOR)
-	} else {
-		// la entrada no es valida, por falta de email, por falta de contraseña,
-		w.WriteHeader(http.StatusBadRequest) // falla en los parametros de entrada
-		w.WriteHeader(http.StatusForbidden) // mala contraseña o email
+// Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
+func generateToken(user userLoginRequest, cat int) (jwtToken, bool) {
+	var key []byte
+	var password string
+	switch cat {
+	case REQUEST_LOGIN_DOCTOR:
+		key = signingKeyDoctor
+		password = "passwordDoctor" // TODO: buscar en MongoDB la clave del usuario doctor
+		// TODO: controlar que : exista el usuario // coincidan el usuario y contraseña
+		// TODO: controlar que no este logueado previamente el usuario, por el tema de que un proceso de adueña de un archivo y no lo libera
+		break
+	case REQUEST_LOGIN_PLADEMA:
+		key = signingKeyPladema
+		password = "passwordPladema" // TODO: buscar en MongoDB la clave del usuario pladema
+		// TODO: controlar que : exista el usuario // coincidan el usuario y contraseña
+		// TODO: controlar que no este logueado previamente el usuario, por el tema de que un proceso de adueña de un archivo y no lo libera
+		break
+	case REQUEST_LOGIN_ADMIN:
+		if !adminLoguedIn {
+			key = signingKeyAdmin
+			password = "passwordAdmin" // TODO: buscar en MongoDB la clave del usuario administrador
+			// TODO: controlar que : exista el usuario // coincidan el usuario y contraseña
+			adminLoguedIn = true // 1 solo admin puede haber logueado en el sistema
+		} else {
+			return jwtToken{Token: ERROR_USER_ALREADY_LOGUED}, false
+		}
+		break
+	default:
+		return jwtToken{Token: ERROR_SERVER}, false
+		break
 	}
-	return token
-}
+	if password == "" {
+		password = "pepe"
+	}
 
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Email,
+		"password": user.Password,
+	})
+	tokenString, _ := token.SignedString(key)
+	return jwtToken{Token: tokenString}, true
+}
+func loginPerson(cat int, r *http.Request) (jwtToken, bool) {
+	var user userLoginRequest
+
+	tokenReponse := validateLoginRequest(r)
+	if tokenReponse.Token == VALID_DATA_ENTRY {
+		// no hay error ni en el token requerido, ni en los datos proporcionados, ni en el logueo
+		return generateToken(user, cat)
+	}
+	return tokenReponse, false
+}
 
 // returns a auth token as doctor user
 func loginDoctor(w http.ResponseWriter, r *http.Request) {
-
-
-	
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	token, valid := loginPerson(REQUEST_LOGIN_DOCTOR, r)
+	fmt.Println(valid)
+	if valid == true {
+		w.WriteHeader(http.StatusOK)
+		tokenJSON, _ := json.Marshal(token)
+		w.Write(tokenJSON)
+	} else {
+		var e exception
+		switch token.Token {
+		case ERROR_BAD_FORMED_EMAIL:
+			w.WriteHeader(http.StatusBadRequest)
+			e.Status = http.StatusBadRequest
+			break
+		case ERROR_BAD_FORMED_PASSWORD:
+			w.WriteHeader(http.StatusBadRequest)
+			e.Status = http.StatusBadRequest
+			break
+		case ERROR_LOGIN_CREDENTIALS:
+			w.WriteHeader(http.StatusForbidden)
+			e.Status = http.StatusForbidden
+			break
+		case ERROR_NOT_JSON_NEEDED:
+			w.WriteHeader(http.StatusBadRequest)
+			e.Status = http.StatusBadRequest
+			break
+		case ERROR_USER_ALREADY_LOGUED:
+			w.WriteHeader(http.StatusForbidden)
+			e.Status = http.StatusForbidden
+			break
+		}
+		e.Message = token.Token
+		exceptionJSON, _ := json.Marshal(e)
+		w.Write(exceptionJSON)
+	}
 }
 
 // returns a auth token as pladema user
@@ -99,23 +126,7 @@ func addFile(w http.ResponseWriter, r *http.Request) {}
 func delFile(w http.ResponseWriter, r *http.Request) {}
 
 // returns all files to visualize
-func allFiles(w http.ResponseWriter, req *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-
-	var user User
-	_ = json.NewDecoder(req.Body).Decode(&user)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"password": user.Password,
-	})
-	tokenString, error := token.SignedString([]byte("secret"))
-	if error != nil {
-		fmt.Println(error)
-	}
-	json.NewEncoder(w).Encode(JwtToken{Token: tokenString})
-}
+func allFiles(w http.ResponseWriter, req *http.Request) {}
 
 // add to the hashtable the file that is opened
 func openedFile(w http.ResponseWriter, r *http.Request) {}
