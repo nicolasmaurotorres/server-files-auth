@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -41,8 +40,8 @@ func generateToken(user userLoginRequest, cat int) (jwtToken, bool) {
 		break
 	default:
 		return jwtToken{Token: ERROR_SERVER}, false
-		break
 	}
+
 	if password == "" {
 		password = "pepe"
 	}
@@ -54,9 +53,9 @@ func generateToken(user userLoginRequest, cat int) (jwtToken, bool) {
 	tokenString, _ := token.SignedString(key)
 	return jwtToken{Token: tokenString}, true
 }
+
 func loginPerson(cat int, r *http.Request) (jwtToken, bool) {
 	var user userLoginRequest
-
 	tokenReponse := validateLoginRequest(r)
 	if tokenReponse.Token == VALID_DATA_ENTRY {
 		// no hay error ni en el token requerido, ni en los datos proporcionados, ni en el logueo
@@ -65,50 +64,77 @@ func loginPerson(cat int, r *http.Request) (jwtToken, bool) {
 	return tokenReponse, false
 }
 
+func getLoginError(token jwtToken) ([]byte, int) {
+	var e exception
+	switch token.Token {
+	case ERROR_BAD_FORMED_EMAIL:
+		e.Status = http.StatusBadRequest
+		break
+	case ERROR_BAD_FORMED_PASSWORD:
+		e.Status = http.StatusBadRequest
+		break
+	case ERROR_LOGIN_CREDENTIALS:
+		e.Status = http.StatusForbidden
+		break
+	case ERROR_NOT_JSON_NEEDED:
+		e.Status = http.StatusBadRequest
+		break
+	case ERROR_USER_ALREADY_LOGUED:
+		e.Status = http.StatusForbidden
+		break
+	case ERROR_SERVER:
+		e.Status = http.StatusInternalServerError
+		break
+	}
+	e.Message = token.Token
+	exceptionJSON, _ := json.Marshal(e)
+	return exceptionJSON, e.Status
+
+}
+
 // returns a auth token as doctor user
 func loginDoctor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	token, valid := loginPerson(REQUEST_LOGIN_DOCTOR, r)
-	fmt.Println(valid)
 	if valid == true {
 		w.WriteHeader(http.StatusOK)
 		tokenJSON, _ := json.Marshal(token)
 		w.Write(tokenJSON)
 	} else {
-		var e exception
-		switch token.Token {
-		case ERROR_BAD_FORMED_EMAIL:
-			w.WriteHeader(http.StatusBadRequest)
-			e.Status = http.StatusBadRequest
-			break
-		case ERROR_BAD_FORMED_PASSWORD:
-			w.WriteHeader(http.StatusBadRequest)
-			e.Status = http.StatusBadRequest
-			break
-		case ERROR_LOGIN_CREDENTIALS:
-			w.WriteHeader(http.StatusForbidden)
-			e.Status = http.StatusForbidden
-			break
-		case ERROR_NOT_JSON_NEEDED:
-			w.WriteHeader(http.StatusBadRequest)
-			e.Status = http.StatusBadRequest
-			break
-		case ERROR_USER_ALREADY_LOGUED:
-			w.WriteHeader(http.StatusForbidden)
-			e.Status = http.StatusForbidden
-			break
-		}
-		e.Message = token.Token
-		exceptionJSON, _ := json.Marshal(e)
+		exceptionJSON, status := getLoginError(token)
+		w.WriteHeader(status)
 		w.Write(exceptionJSON)
 	}
 }
 
 // returns a auth token as pladema user
-func loginPladema(w http.ResponseWriter, r *http.Request) {}
+func loginPladema(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	token, valid := loginPerson(REQUEST_LOGIN_PLADEMA, r)
+	if valid == true {
+		w.WriteHeader(http.StatusOK)
+		tokenJSON, _ := json.Marshal(token)
+		w.Write(tokenJSON)
+	} else {
+		exceptionJSON, status := getLoginError(token)
+		w.WriteHeader(status)
+		w.Write(exceptionJSON)
+	}
+}
 
 // returns a auth token as admin user
-func loginAdmin(w http.ResponseWriter, r *http.Request) {}
+func loginAdmin(w http.ResponseWriter, r *http.Request) {
+	token, valid := loginPerson(REQUEST_LOGIN_ADMIN, r)
+	if valid == true {
+		w.WriteHeader(http.StatusOK)
+		tokenJSON, _ := json.Marshal(token)
+		w.Write(tokenJSON)
+	} else {
+		exceptionJSON, status := getLoginError(token)
+		w.WriteHeader(status)
+		w.Write(exceptionJSON)
+	}
+}
 
 // add a new user with the data on a json
 func addUser(w http.ResponseWriter, r *http.Request) {}
