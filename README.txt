@@ -45,4 +45,14 @@ Referential Links:
     		fmt.Printf("Welcome To ITzGeek\n")
 	}
 
+- in the console you have to add the default user admin/admin 
+	* mongo
+	* use tesis
+	* db.createCollection("users")
+	* db.users.insert({"category":"2","email":"admin","password":"admin"})
+
+- defaults users only for testing
+	* db.users.insert({"category":"1","email":"pladema@pladema.com","password":"pladema","name":"pladema"})
+	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor","directorys":[{"path":"doctor@doctor.com","files":[{"file":""}]}]})
+
 

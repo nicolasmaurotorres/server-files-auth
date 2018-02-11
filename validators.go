@@ -2,36 +2,89 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/asaskevich/govalidator"
-	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func ValidateFieldsLoginRequest(user UserLoginRequest) JwtToken {
-	// validate the email is not null
-	if !govalidator.IsEmail(user.Email) {
-		return JwtToken{Token: ERROR_BAD_FORMED_EMAIL}
-	}
-	// validate the name is not empty or missing
-	if govalidator.IsNull(user.Password) {
-		return JwtToken{Token: ERROR_BAD_FORMED_PASSWORD}
-	}
-	return JwtToken{Token: VALID_DATA_ENTRY}
+type UserLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
-func ValidateLoginJSONRequest(r *http.Request) JwtToken {
+func GetLoginJSONRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
 	var user UserLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
 	if err == nil { // no hay errores de json mal formado
-		return ValidateFieldsLoginRequest(user)
+		if cat != REQUEST_ADMIN {
+			if !govalidator.IsEmail(user.Email) {
+				return user, errors.New(ERROR_BAD_FORMED_EMAIL)
+			}
+		} else {
+			if govalidator.IsNull(user.Email) {
+				return user, errors.New(ERROR_BAD_FORMED_PASSWORD)
+			}
+		}
+		// validate the name is not empty or missing
+		if govalidator.IsNull(user.Password) {
+			return user, errors.New(ERROR_BAD_FORMED_PASSWORD)
+		}
+		return user, nil
 	}
-	return JwtToken{Token: ERROR_NOT_JSON_NEEDED}
+	return user, errors.New(ERROR_NOT_JSON_NEEDED)
 }
 
-func ValidateLogoutJSONRequest(r *http.Request, cat int) (bool, string) {
+type NewUserRequest struct {
+	Token    string `json:"token"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Category int8   `json:"category"` // 0 doctor, 1 pladema
+}
+
+// GetNewUserJSONRequest returns a user with valid data
+func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
+	var newUserRequest NewUserRequest
+	err := json.NewDecoder(r.Body).Decode(&newUserRequest)
+	defer r.Body.Close()
+	if err != nil {
+		//the json input is valid but we have to check the data values
+		return newUserRequest, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errorMessage := IsValidToken(newUserRequest.Token)
+	if !valid {
+		return newUserRequest, errors.New(errorMessage.Error())
+	}
+
+	if !govalidator.IsEmail(newUserRequest.Email) {
+		return newUserRequest, errors.New(ERROR_BAD_FORMED_EMAIL)
+	}
+
+	if ExistsEmail(newUserRequest.Email) {
+		return newUserRequest, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
+	}
+
+	if !govalidator.IsNull(newUserRequest.Password) {
+		return newUserRequest, errors.New(ERROR_BAD_FORMED_PASSWORD)
+	}
+
+	if !govalidator.IsNull(newUserRequest.Name) {
+		return newUserRequest, errors.New(ERROR_BAD_FORMED_NAME)
+	}
+
+	if !(newUserRequest.Category == REQUEST_DOCTOR || newUserRequest.Category == REQUEST_PLADEMA) {
+		return newUserRequest, errors.New(ERROR_BAD_CATEGORY)
+	}
+	return newUserRequest, nil
+}
+
+type JwtToken struct {
+	Token string `json:"token"`
+}
+
+func GetTokenStringFromLogoutRequest(r *http.Request) (bool, string) {
 	var userLogoutRequest JwtToken
 	err := json.NewDecoder(r.Body).Decode(&userLogoutRequest)
 	defer r.Body.Close()
@@ -41,40 +94,11 @@ func ValidateLogoutJSONRequest(r *http.Request, cat int) (bool, string) {
 	return false, ERROR_NOT_JSON_NEEDED
 }
 
-func ValidDataLogoutJSONRequest(token string, cat int) (bool, string) {
-	validToken, errorMessage := IsValidToken(token, cat)
-	if !validToken {
-		return false, errorMessage
+// IsValidToken returns if a token is valid or not, depends on the category of the token
+func IsValidToken(tokenString string) (bool, error) {
+	_, inMap := LogedUsers[tokenString]
+	if inMap {
+		return true, nil
 	}
-	return true, ""
-}
-
-func IsValidToken(tokenString string, cat int) (bool, string) {
-	var key []byte
-	switch cat {
-	case REQUEST_ADMIN:
-		key = SigningKeyAdmin
-		break
-	case REQUEST_PLADEMA:
-		key = SigningKeyPladema
-		break
-	case REQUEST_DOCTOR:
-		key = SigningKeyDoctor
-		break
-	default:
-		return false, ERROR_SERVER
-	}
-	token, error := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("There was an error")
-		}
-		return key, nil
-	})
-	if error != nil {
-		return false, error.Error()
-	}
-	if token.Valid {
-		return true, ""
-	}
-	return false, ERROR_NOT_VALID_TOKEN
+	return false, errors.New(ERROR_NOT_LOGUED_USER)
 }

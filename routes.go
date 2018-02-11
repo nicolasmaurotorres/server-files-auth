@@ -91,21 +91,9 @@ var routes = Routes{
 		SearchFiles,
 	},
 	Route{
-		"logoutDoctor",
-		"POST",
-		"/logout/doctor",
-		LogoutDoctor,
-	},
-	Route{
-		"logoutPladema",
-		"POST",
-		"/logout/pladema",
-		LogoutPladema,
-	},
-	Route{
-		"logoutAdmin",
+		"logout",
 		"POST",
 		"/logout/admin",
-		LogoutAdmin,
+		Logout,
 	},
 }
