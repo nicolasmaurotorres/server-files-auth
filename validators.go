@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/asaskevich/govalidator"
@@ -50,6 +51,7 @@ func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
 	err := json.NewDecoder(r.Body).Decode(&newUserRequest)
 	defer r.Body.Close()
 	if err != nil {
+		fmt.Println(err)
 		//the json input is valid but we have to check the data values
 		return newUserRequest, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
@@ -66,11 +68,11 @@ func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
 		return newUserRequest, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 
-	if !govalidator.IsNull(newUserRequest.Password) {
+	if govalidator.IsNull(newUserRequest.Password) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_PASSWORD)
 	}
 
-	if !govalidator.IsNull(newUserRequest.Name) {
+	if govalidator.IsNull(newUserRequest.Name) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_NAME)
 	}
 

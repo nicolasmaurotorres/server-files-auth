@@ -13,39 +13,59 @@ import (
 const (
 	DB_NAME          = "tesis"
 	COLLECTION_USERS = "users"
-	BASE_PATH        = "/home/maro/Desktop/data/pvw/"
+	BASE_PATH        = "/home/maro/Desktop/data/pvw/data/"
 )
 
-type Directory struct {
-	Path  string   `json:"path"`
-	Files []string `json:"files"`
+/*
+
+marowark@gmail.com/pepe/archivo1.txt
+marowark@gmail.com/pepo/archivo1.txt
+marowark@gmail.com/pepe/archivo2.txt
+
+	Name       :marowark
+	Email      :marowark@gmail.com
+	Password   :123456
+	Directorys [{
+					Path:pepe,
+					Files : [{
+						Name : archivo1.txt
+					},{
+						Name: archivo2.txt
+					}]
+				},
+				{
+					Path:pepo,
+					Files : [
+						Name: archivo1.txt
+					]
+				}]
+*/
+
+type File struct {
+	Name string
 }
 
-type Directorys []Directory
-
-func getSession() *mgo.Session {
-	session, err := mgo.Dial("localhost:27017")
-	if err != nil {
-		panic(err)
-	}
-	return session
+type Directory struct {
+	Path  string `json:"path"`
+	Files []File `json:"files"`
 }
 
 type User struct {
-	Name       string
-	Email      string
-	Password   string
-	Directorys []Directory
+	Name     string
+	Email    string
+	Password string
 }
 
 type UserDoctorDBO struct {
-	Name      string
-	Email     string
-	Password  string
-	Directory Directorys
+	Category int8
+	Name     string
+	Email    string
+	Password string
+	Folders  []Directory
 }
 
 type UserPlademaDBO struct {
+	Category int8
 	Name     string
 	Email    string
 	Password string
@@ -54,6 +74,14 @@ type UserPlademaDBO struct {
 type UserAdminDBO struct {
 	Email    string
 	Password string
+}
+
+func getSession() *mgo.Session {
+	session, err := mgo.Dial("localhost:27017")
+	if err != nil {
+		panic(err)
+	}
+	return session
 }
 
 // precondicion el email NO EXISTE
@@ -70,17 +98,13 @@ func NewUserDAL(user NewUserRequest) error {
 		userDoctor.Name = user.Name
 		userDoctor.Email = user.Email
 		userDoctor.Password = user.Password
-		os.Mkdir(BASE_PATH+userDoctor.Email, 0666)
-		var directory Directory
-		directory.Path = BASE_PATH + userDoctor.Email
-		directory.Files = make([]string, 1)
-		directory.Files[0] = ""
-		var directorys Directorys
-		directorys = append(directorys, directory)
-		userDoctor.Directory = directorys
+		userDoctor.Category = REQUEST_DOCTOR
+		os.Mkdir(BASE_PATH+userDoctor.Email, 0644)
+		userDoctor.Folders = make([]Directory, 1)
+		userDoctor.Folders[0].Files = make([]File, 1)
+		userDoctor.Folders[0].Path = user.Email
 		err := collection.Insert(userDoctor)
 		if err != nil {
-			log.Fatal(ERROR_INSERT_NEW_DOCTOR)
 			return errors.New(ERROR_INSERT_NEW_DOCTOR)
 		}
 		return nil
@@ -89,15 +113,13 @@ func NewUserDAL(user NewUserRequest) error {
 		userPladema.Email = user.Email
 		userPladema.Name = user.Name
 		userPladema.Password = user.Password
+		userPladema.Category = REQUEST_PLADEMA
 		err := collection.Insert(userPladema)
 		if err != nil {
 			log.Fatal(ERROR_INSERT_NEW_PLADEMA)
 			return errors.New(ERROR_INSERT_NEW_PLADEMA)
 		}
 		return nil
-	case REQUEST_ADMIN:
-		log.Fatal(ERROR_NEW_ADMIN)
-		return errors.New(ERROR_NEW_ADMIN)
 	default:
 		log.Fatal(ERROR_SERVER)
 		return errors.New(ERROR_SERVER)
@@ -109,9 +131,9 @@ func ExistsEmail(email string) bool {
 	defer session.Close()
 	collection := session.DB(DB_NAME).C(COLLECTION_USERS)
 	var userResult User
-	err := collection.Find(bson.M{"email": "{$eq:" + email + "}"}).One(&userResult)
+	//	fmt.Println("llegue ExistsE mail")
+	err := collection.Find(bson.M{"email": email}).One(&userResult)
 	if err != nil {
-		log.Fatal(err)
 		return false
 	}
 	return true

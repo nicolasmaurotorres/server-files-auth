@@ -18,7 +18,6 @@ type Response struct {
 // Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
 func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	var key []byte
-	fmt.Println(cat)
 	userDBO, err := GetUserByEmail(user.Email, cat)
 	if err != nil {
 		return JwtToken{Token: ""}, err
@@ -36,7 +35,6 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	default:
 		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
 	}
-	fmt.Println("el usuario esta en la db")
 	// control de pass y user que sean iguales
 	if user.Password != userDBO.Password || user.Email != userDBO.Email {
 		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
@@ -64,7 +62,6 @@ func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
 		fmt.Println(err.Error())
 		return JwtToken{Token: ""}, err
 	}
-	fmt.Println(cat)
 	token, err := GenerateToken(user, cat)
 	if err != nil {
 		return JwtToken{Token: ""}, err
@@ -153,6 +150,7 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 	var response Response
 	var responseJSON []byte
 	if erro == nil {
+		//	fmt.Println("pase por addUser sin error")
 		err := NewUserDAL(newUser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

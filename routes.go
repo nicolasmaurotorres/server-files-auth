@@ -93,7 +93,7 @@ var routes = Routes{
 	Route{
 		"logout",
 		"POST",
-		"/logout/admin",
+		"/logout",
 		Logout,
 	},
 }
