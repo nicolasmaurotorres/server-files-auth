@@ -174,11 +174,31 @@ func CreateFolder(req AddFolderRequest) error {
 	session := getSession()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": email}
-	obj := bson.D{{"path", newFolder.Path}, {"files", make([]File, 1)}}
-	update := bson.M{"$push": bson.M{"directorys": obj}}
+	update := bson.M{"$push": bson.M{"directorys": newFolder}}
 	errUpdate := collection.Update(query, update) // actualizo al usuario
 	if errUpdate != nil {
 		return errUpdate // error en la actualizacion
+	}
+	return nil
+}
+
+func DeleteFolder(req DelFolderRequest) error {
+	valid, err := IsValidToken(req.Token, true)
+	if !valid {
+		return err
+	}
+	email := LogedUsers[req.Token].Email
+	errDel := os.RemoveAll(BASE_PATH + "/" + email + PATH_OWN_FILES + req.Folder)
+	if errDel != nil {
+		return errDel
+	}
+	session := getSession()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := bson.M{"email": email}
+	update := bson.M{"$pull": bson.M{"directorys": bson.M{"path": email + PATH_OWN_FILES + req.Folder}}}
+	errUpdate := collection.Update(query, update)
+	if errUpdate != nil {
+		return errUpdate
 	}
 	return nil
 }

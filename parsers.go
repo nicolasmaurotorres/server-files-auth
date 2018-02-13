@@ -109,6 +109,7 @@ func IsValidToken(tokenString string, checkTimeStamp bool) (bool, error) {
 				delete(LogedUsers, tokenString) // lo elimino por tiempo invalido
 				return false, errors.New(ERROR_REQUIRE_LOGIN_AGAIN)
 			}
+			LogedUsers[tokenString].TimeLogIn = time.Now() // actualizo el tiempo que se checkeo el token
 			return true, nil
 		}
 		return true, nil
@@ -135,6 +136,28 @@ func GetAddFolderRequestFromJSONRequest(r *http.Request) (AddFolderRequest, erro
 	if govalidator.IsNull(toReturn.Name) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
 	}
-
 	return toReturn, nil
+}
+
+type DelFolderRequest struct {
+	Token  string `json:"token"`
+	Folder string `json:"folder"`
+}
+
+func GetDelFolderRequestFromJSONRequest(r *http.Request) (DelFolderRequest, error) {
+	var toReturn DelFolderRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	if govalidator.IsNull(toReturn.Token) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
+	}
+
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
+	}
+	return toReturn, nil
+
 }

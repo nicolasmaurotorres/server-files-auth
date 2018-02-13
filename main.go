@@ -15,7 +15,8 @@ const (
 
 	USER_CREATED_SUCCESS          = "user created success"
 	LOGOUT_SUCCESS                = "logout success"
-	CREATE_FOLDER_SUCCESS         = "folder created successfully "
+	CREATE_FOLDER_SUCCESS         = "folder created successfully"
+	DELETE_FOLDER_SUCCESS         = "folder deleted successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
@@ -45,7 +46,7 @@ type Pair struct {
 
 var TimeoutLogin = 600
 var OpenedFiles = make(map[string][]string)
-var LogedUsers = make(map[string]Pair)
+var LogedUsers = make(map[string]*Pair)
 var SigningKeyAdmin = []byte("Sup3rS3cr374dm1n")
 var SigningKeyPladema = []byte("S3cr37Sup3rPl4d3m4")
 var SigningKeyDoctor = []byte("Sup4S1cr1tD0ct0r")

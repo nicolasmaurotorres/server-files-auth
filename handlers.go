@@ -52,7 +52,7 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	}
 	var toReturn JwtToken
 	toReturn.Token = tokenString
-	LogedUsers[tokenString] = Pair{TimeLogIn: time.Now(), Email: user.Email}
+	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email}
 	return toReturn, nil
 }
 
@@ -279,7 +279,29 @@ func AddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DelFolder(w http.ResponseWriter, r *http.Request) {}
+func DelFolder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	delFolderRequest, err := GetDelFolderRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errFolder := DeleteFolder(delFolderRequest)
+		if errFolder != nil {
+			w.WriteHeader(http.StatusForbidden)
+			response.Message = errFolder.Error()
+			response.Status = http.StatusForbidden
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = DELETE_FOLDER_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 func RenameFolder(w http.ResponseWriter, r *http.Request) {}
 

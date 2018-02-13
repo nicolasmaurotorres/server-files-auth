@@ -54,13 +54,13 @@ var routes = Routes{
 		EditUser,
 	},
 	Route{
-		"addFolder",
+		"addFolder", // ok
 		"POST",
 		"/add/folder",
 		AddFolder,
 	},
 	Route{
-		"delFolder",
+		"delFolder", // ok
 		"POST",
 		"/del/folder",
 		DelFolder,

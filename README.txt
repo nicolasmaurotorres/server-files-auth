@@ -70,5 +70,3 @@ Referential Links:
 		}]
 	}
 	]})
-
-
