@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 )
@@ -55,7 +57,7 @@ func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
 		//the json input is valid but we have to check the data values
 		return newUserRequest, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errorMessage := IsValidToken(newUserRequest.Token)
+	valid, errorMessage := IsValidToken(newUserRequest.Token, true)
 	if !valid {
 		return newUserRequest, errors.New(errorMessage.Error())
 	}
@@ -97,10 +99,42 @@ func GetTokenStringFromLogoutRequest(r *http.Request) (bool, string) {
 }
 
 // IsValidToken returns if a token is valid or not, depends on the category of the token
-func IsValidToken(tokenString string) (bool, error) {
-	_, inMap := LogedUsers[tokenString]
+func IsValidToken(tokenString string, checkTimeStamp bool) (bool, error) {
+	value, inMap := LogedUsers[tokenString]
 	if inMap {
+		if checkTimeStamp {
+			diff := time.Now().Sub(value.TimeLogIn)
+			minutesDiff := math.Abs(diff.Minutes())
+			if minutesDiff > 5 {
+				delete(LogedUsers, tokenString) // lo elimino por tiempo invalido
+				return false, errors.New(ERROR_REQUIRE_LOGIN_AGAIN)
+			}
+			return true, nil
+		}
 		return true, nil
 	}
 	return false, errors.New(ERROR_NOT_LOGUED_USER)
+}
+
+type AddFolderRequest struct {
+	Token string `json:"token"`
+	Name  string `json:"name"`
+}
+
+func GetAddFolderRequestFromJSONRequest(r *http.Request) (AddFolderRequest, error) {
+	var toReturn AddFolderRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	if govalidator.IsNull(toReturn.Token) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
+	}
+
+	if govalidator.IsNull(toReturn.Name) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
+	}
+
+	return toReturn, nil
 }

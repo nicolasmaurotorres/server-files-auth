@@ -11,35 +11,13 @@ import (
 )
 
 const (
-	DB_NAME          = "tesis"
-	COLLECTION_USERS = "users"
-	BASE_PATH        = "/home/maro/Desktop/data/pvw/data/"
+	DATABASE_NAME       = "tesis"
+	COLLECTION_USERS    = "users"
+	BASE_PATH           = "/home/maro/Desktop/data/pvw/data/"
+	PATH_OWN_FILES      = "/own/"
+	PATH_MODIFIED_FILES = "/modified/"
+	MODE_PERMITIONS     = 0755
 )
-
-/*
-
-marowark@gmail.com/pepe/archivo1.txt
-marowark@gmail.com/pepo/archivo1.txt
-marowark@gmail.com/pepe/archivo2.txt
-
-	Name       :marowark
-	Email      :marowark@gmail.com
-	Password   :123456
-	Directorys [{
-					Path:pepe,
-					Files : [{
-						Name : archivo1.txt
-					},{
-						Name: archivo2.txt
-					}]
-				},
-				{
-					Path:pepo,
-					Files : [
-						Name: archivo1.txt
-					]
-				}]
-*/
 
 type File struct {
 	Name string
@@ -91,7 +69,7 @@ func NewUserDAL(user NewUserRequest) error {
 	if ExistsEmail(user.Email) {
 		return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
-	collection := session.DB(DB_NAME).C(COLLECTION_USERS)
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	switch user.Category {
 	case REQUEST_DOCTOR:
 		var userDoctor UserDoctorDBO
@@ -99,10 +77,14 @@ func NewUserDAL(user NewUserRequest) error {
 		userDoctor.Email = user.Email
 		userDoctor.Password = user.Password
 		userDoctor.Category = REQUEST_DOCTOR
-		os.Mkdir(BASE_PATH+userDoctor.Email, 0644)
-		userDoctor.Folders = make([]Directory, 1)
+		os.Mkdir(BASE_PATH+userDoctor.Email, MODE_PERMITIONS)
+		os.Mkdir(BASE_PATH+userDoctor.Email+PATH_OWN_FILES, MODE_PERMITIONS)      // files sended by the doctor
+		os.Mkdir(BASE_PATH+userDoctor.Email+PATH_MODIFIED_FILES, MODE_PERMITIONS) // files modified by the pladema user
+		userDoctor.Folders = make([]Directory, 2)
 		userDoctor.Folders[0].Files = make([]File, 1)
-		userDoctor.Folders[0].Path = user.Email
+		userDoctor.Folders[0].Path = userDoctor.Email + PATH_OWN_FILES
+		userDoctor.Folders[1].Files = make([]File, 1)
+		userDoctor.Folders[1].Path = userDoctor.Email + PATH_MODIFIED_FILES
 		err := collection.Insert(userDoctor)
 		if err != nil {
 			return errors.New(ERROR_INSERT_NEW_DOCTOR)
@@ -129,7 +111,7 @@ func NewUserDAL(user NewUserRequest) error {
 func ExistsEmail(email string) bool {
 	session := getSession()
 	defer session.Close()
-	collection := session.DB(DB_NAME).C(COLLECTION_USERS)
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	var userResult User
 	//	fmt.Println("llegue ExistsE mail")
 	err := collection.Find(bson.M{"email": email}).One(&userResult)
@@ -143,7 +125,7 @@ func GetUserByEmail(email string, cat int8) (User, error) {
 	var userToReturn User
 	session := getSession()
 	defer session.Close()
-	collection := session.DB(DB_NAME).C(COLLECTION_USERS)
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
 	query["email"] = email
 	switch cat {
@@ -164,7 +146,7 @@ func GetUserByEmail(email string, cat int8) (User, error) {
 	return userToReturn, nil
 }
 
-func ExistsPathForUser(path string, email string) bool {
+func ExistsFolderUser(path string, email string) bool {
 	return false
 }
 
@@ -173,5 +155,30 @@ func ExistsFileInPathUser(path string, file string, email string) bool {
 }
 
 func AddNewFileToPath(path string, file string) error {
+	return nil
+}
+
+func CreateFolder(req AddFolderRequest) error {
+	valid, err := IsValidToken(req.Token, true)
+	if !valid {
+		return err
+	}
+	email := LogedUsers[req.Token].Email
+	errCreate := os.Mkdir(BASE_PATH+email+PATH_OWN_FILES+req.Name, MODE_PERMITIONS) //checkeo si puedo crear la carpeta
+	if errCreate != nil {
+		return errCreate // no se pudo crear la carpeta
+	}
+	var newFolder Directory
+	newFolder.Files = make([]File, 1)
+	newFolder.Path = email + PATH_OWN_FILES + req.Name
+	session := getSession()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := bson.M{"email": email}
+	obj := bson.D{{"path", newFolder.Path}, {"files", make([]File, 1)}}
+	update := bson.M{"$push": bson.M{"directorys": obj}}
+	errUpdate := collection.Update(query, update) // actualizo al usuario
+	if errUpdate != nil {
+		return errUpdate // error en la actualizacion
+	}
 	return nil
 }

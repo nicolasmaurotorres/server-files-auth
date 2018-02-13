@@ -18,25 +18,25 @@ type Routes []Route
 // variable to contain all the routes of the api
 var routes = Routes{
 	Route{
-		"loginDoctor",
+		"loginDoctor", // ok
 		"POST",
 		"/login/doctor",
 		LoginDoctor,
 	},
 	Route{
-		"loginPladema",
+		"loginPladema", // ok
 		"POST",
 		"/login/pladema",
 		LoginPladema,
 	},
 	Route{
-		"loginAdmin",
+		"loginAdmin", // ok
 		"POST",
 		"/login/admin",
 		LoginAdmin,
 	},
 	Route{
-		"addUser",
+		"addUser", // ok
 		"POST",
 		"/admin/add",
 		AddUser,
@@ -54,9 +54,39 @@ var routes = Routes{
 		EditUser,
 	},
 	Route{
-		"addFile",
+		"addFolder",
 		"POST",
-		"/doctor/add/file",
+		"/add/folder",
+		AddFolder,
+	},
+	Route{
+		"delFolder",
+		"POST",
+		"/del/folder",
+		DelFolder,
+	},
+	Route{
+		"renameFolder",
+		"POST",
+		"rename/folder",
+		RenameFolder,
+	},
+	Route{
+		"renameFile",
+		"POST",
+		"rename/file",
+		RenameFile,
+	},
+	Route{
+		"moveFileToFolder",
+		"POST",
+		"move/file/folder",
+		MoveFileToFolder,
+	},
+	Route{
+		"addFile", // tanto para doctor como para pladema
+		"POST",
+		"/add/file",
 		AddFile,
 	},
 	Route{
@@ -65,7 +95,6 @@ var routes = Routes{
 		"/doctor/del/file",
 		DelFile,
 	},
-
 	Route{
 		"allFiles",
 		"POST",
@@ -73,10 +102,10 @@ var routes = Routes{
 		AllFiles,
 	},
 	Route{
-		"openedFile",
+		"openFile",
 		"POST",
 		"/doctor/open/file",
-		OpenedFile,
+		OpenFile,
 	},
 	Route{
 		"closeFile",
@@ -85,12 +114,12 @@ var routes = Routes{
 		CloseFile,
 	},
 	Route{
-		"searchFiles",
+		"searchFiles", // operacion para usuario pladema
 		"POST",
 		"/login/admin",
 		SearchFiles,
 	},
-	Route{
+	Route{ // ok
 		"logout",
 		"POST",
 		"/logout",

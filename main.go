@@ -13,14 +13,14 @@ const (
 
 	VALID_DATA_ENTRY = "valid_data_entry"
 
-	USER_CREATED_SUCCESS = "user created success"
-
-	LOGOUT_SUCCESS = "logout success"
-
+	USER_CREATED_SUCCESS          = "user created success"
+	LOGOUT_SUCCESS                = "logout success"
+	CREATE_FOLDER_SUCCESS         = "folder created successfully "
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
 	ERROR_BAD_FORMED_NAME         = "the name cannot be empty"
+	ERROR_BAD_FORMED_TOKEN        = "the token cannot be empty"
 	ERROR_BAD_CATEGORY            = "the category is not valid"
 	ERROR_LOGIN_CREDENTIALS       = "email or password does not match"
 	ERROR_NOT_JSON_NEEDED         = "not valid json needeed"
@@ -35,11 +35,17 @@ const (
 	ERROR_NOT_LOGUED_USER         = "the user is not logued on"
 	ERROR_SERVER                  = "error server"
 	ERROR_ADMIN_NOT_LOGUED        = "the admin is not logued"
+	ERROR_REQUIRE_LOGIN_AGAIN     = "login timeout"
 )
+
+type Pair struct {
+	TimeLogIn time.Time
+	Email     string
+}
 
 var TimeoutLogin = 600
 var OpenedFiles = make(map[string][]string)
-var LogedUsers = make(map[string]time.Time)
+var LogedUsers = make(map[string]Pair)
 var SigningKeyAdmin = []byte("Sup3rS3cr374dm1n")
 var SigningKeyPladema = []byte("S3cr37Sup3rPl4d3m4")
 var SigningKeyDoctor = []byte("Sup4S1cr1tD0ct0r")

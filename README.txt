@@ -53,6 +53,22 @@ Referential Links:
 
 - defaults users only for testing
 	* db.users.insert({"category":"1","email":"pladema@pladema.com","password":"pladema","name":"pladema"})
-	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor","directorys":[{"path":"doctor@doctor.com","files":[{"file":""}]}]})
+	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor",
+	"directorys":
+	[{
+		"path":"doctor@doctor.com/own/",
+		"files":
+		[{
+			"name":""
+		}]
+	},
+	{
+		"path":"doctor@doctor.com/modified/",
+		"files":
+		[{
+			"name":""
+		}]
+	}
+	]})
 
 

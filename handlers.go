@@ -52,7 +52,7 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	}
 	var toReturn JwtToken
 	toReturn.Token = tokenString
-	LogedUsers[tokenString] = time.Now()
+	LogedUsers[tokenString] = Pair{TimeLogIn: time.Now(), Email: user.Email}
 	return toReturn, nil
 }
 
@@ -190,7 +190,7 @@ func DelFile(w http.ResponseWriter, r *http.Request) {}
 func AllFiles(w http.ResponseWriter, req *http.Request) {}
 
 // add to the hashtable the file that is opened
-func OpenedFile(w http.ResponseWriter, r *http.Request) {}
+func OpenFile(w http.ResponseWriter, r *http.Request) {}
 
 // remove a file of the hashtable of opened files
 func CloseFile(w http.ResponseWriter, r *http.Request) {}
@@ -200,7 +200,7 @@ func SearchFiles(w http.ResponseWriter, r *http.Request) {}
 
 func RoutineLogout(w http.ResponseWriter, tokenString string) bool {
 	var response Response
-	validToken, errorMessage := IsValidToken(tokenString)
+	validToken, errorMessage := IsValidToken(tokenString, false)
 	if validToken {
 		_, inMap := LogedUsers[tokenString]
 		if inMap {
@@ -236,7 +236,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	valid, tokenString := GetTokenStringFromLogoutRequest(r)
 	var response Response
 	if valid {
-		inMap, err := IsValidToken(tokenString)
+		inMap, err := IsValidToken(tokenString, false)
 		if inMap {
 			RoutineLogout(w, tokenString)
 		} else {
@@ -254,3 +254,35 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		w.Write(responseJSON)
 	}
 }
+
+func AddFolder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	folderRequest, err := GetAddFolderRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errCreate := CreateFolder(folderRequest)
+		if errCreate != nil {
+			w.WriteHeader(http.StatusForbidden)
+			response.Message = errCreate.Error()
+			response.Status = http.StatusForbidden
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = CREATE_FOLDER_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
+
+func DelFolder(w http.ResponseWriter, r *http.Request) {}
+
+func RenameFolder(w http.ResponseWriter, r *http.Request) {}
+
+func RenameFile(w http.ResponseWriter, r *http.Request) {}
+
+func MoveFileToFolder(w http.ResponseWriter, r *http.Request) {}
