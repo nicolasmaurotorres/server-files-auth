@@ -121,8 +121,8 @@ func ExistsEmail(email string) bool {
 	return true
 }
 
-func GetUserByEmail(email string, cat int8) (User, error) {
-	var userToReturn User
+func GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
+	var userToReturn UserDoctorDBO // this user is the most general of the three
 	session := getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
@@ -141,7 +141,7 @@ func GetUserByEmail(email string, cat int8) (User, error) {
 	}
 	err := collection.Find(query).One(&userToReturn)
 	if err != nil {
-		return User{Name: "", Email: ""}, errors.New(ERROR_NOT_EXISTING_USER)
+		return UserDoctorDBO{Name: "", Email: ""}, errors.New(ERROR_NOT_EXISTING_USER)
 	}
 	return userToReturn, nil
 }
@@ -159,10 +159,6 @@ func AddNewFileToPath(path string, file string) error {
 }
 
 func CreateFolder(req AddFolderRequest) error {
-	valid, err := IsValidToken(req.Token, true)
-	if !valid {
-		return err
-	}
 	email := LogedUsers[req.Token].Email
 	errCreate := os.Mkdir(BASE_PATH+email+PATH_OWN_FILES+req.Name, MODE_PERMITIONS) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
@@ -172,6 +168,7 @@ func CreateFolder(req AddFolderRequest) error {
 	newFolder.Files = make([]File, 1)
 	newFolder.Path = email + PATH_OWN_FILES + req.Name
 	session := getSession()
+	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": email}
 	update := bson.M{"$push": bson.M{"directorys": newFolder}}
@@ -183,22 +180,60 @@ func CreateFolder(req AddFolderRequest) error {
 }
 
 func DeleteFolder(req DelFolderRequest) error {
-	valid, err := IsValidToken(req.Token, true)
-	if !valid {
-		return err
-	}
 	email := LogedUsers[req.Token].Email
 	errDel := os.RemoveAll(BASE_PATH + "/" + email + PATH_OWN_FILES + req.Folder)
 	if errDel != nil {
 		return errDel
 	}
 	session := getSession()
+	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": email}
 	update := bson.M{"$pull": bson.M{"directorys": bson.M{"path": email + PATH_OWN_FILES + req.Folder}}}
 	errUpdate := collection.Update(query, update)
 	if errUpdate != nil {
 		return errUpdate
+	}
+	return nil
+}
+
+func DeleteUser(user DelUserRequest) error {
+	session := getSession()
+	defer session.Close()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := bson.M{"email": user.Email}
+	userDeleted, _ := GetUserByEmail(user.Email, user.Category)
+	errDel := collection.Remove(query)
+	if errDel != nil {
+		return errDel
+	}
+	tokenDeletedUser := ""
+	var theValue *Pair
+	theValue = nil
+	for value, key := range LogedUsers {
+		if key.Email == user.Email {
+			tokenDeletedUser = value
+			theValue.Email = key.Email
+			theValue.TimeLogIn = key.TimeLogIn
+			break
+		}
+	}
+	if tokenDeletedUser != "" {
+		delete(LogedUsers, tokenDeletedUser) // delete if user loged
+	}
+
+	if user.Category == REQUEST_DOCTOR {
+		errDelFolder := os.RemoveAll(BASE_PATH + string(os.PathSeparator) + user.Email) //error deleting the folder
+		if errDelFolder != nil {
+			if theValue != nil {
+				LogedUsers[tokenDeletedUser] = theValue //"rollback"
+			}
+			errRollBack := collection.Insert(userDeleted) // re-insert the deleted user
+			if errRollBack != nil {
+				return errors.New(ERROR_SERVER)
+			}
+			return errDelFolder
+		}
 	}
 	return nil
 }

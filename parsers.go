@@ -129,10 +129,13 @@ func GetAddFolderRequestFromJSONRequest(r *http.Request) (AddFolderRequest, erro
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
+	valid, err := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, err
+	}
 	if govalidator.IsNull(toReturn.Token) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
 	}
-
 	if govalidator.IsNull(toReturn.Name) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
 	}
@@ -151,13 +154,44 @@ func GetDelFolderRequestFromJSONRequest(r *http.Request) (DelFolderRequest, erro
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
+	valid, err := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, err
+	}
 	if govalidator.IsNull(toReturn.Token) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
 	}
-
 	if govalidator.IsNull(toReturn.Folder) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
 	}
 	return toReturn, nil
+}
 
+type DelUserRequest struct {
+	Token    string `json:"token"`
+	Email    string `json:"email"`
+	Category int8   `json:"category"` // 0 doctor, 1 pladema
+}
+
+func GetDelUserRequestFromJSONRequest(r *http.Request) (DelUserRequest, error) {
+	var toReturn DelUserRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, errToken
+	}
+	if !govalidator.IsEmail(toReturn.Email) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_EMAIL)
+	}
+	if !ExistsEmail(toReturn.Email) {
+		return toReturn, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
+	}
+	if !(toReturn.Category == REQUEST_PLADEMA || toReturn.Category == REQUEST_DOCTOR) {
+		return toReturn, errors.New(ERROR_BAD_CATEGORY)
+	}
+	return toReturn, nil
 }

@@ -148,7 +148,6 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	newUser, erro := GetNewUserJSONRequest(r)
 	var response Response
-	var responseJSON []byte
 	if erro == nil {
 		//	fmt.Println("pase por addUser sin error")
 		err := NewUserDAL(newUser)
@@ -156,26 +155,45 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			response.Status = http.StatusInternalServerError
 			response.Message = err.Error()
-			responseJSON, _ := json.Marshal(response)
-			w.Write(responseJSON)
 		} else {
 			w.WriteHeader(http.StatusOK)
 			response.Status = http.StatusOK
 			response.Message = USER_CREATED_SUCCESS
-			responseJSON, _ = json.Marshal(response)
-			w.Write(responseJSON)
 		}
 	} else {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Status = http.StatusBadRequest
 		response.Message = erro.Error()
-		responseJSON, _ = json.Marshal(response)
-		w.Write(responseJSON)
 	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
 }
 
 // delete some valid user with the data on a json
-func DelUser(w http.ResponseWriter, r *http.Request) {}
+func DelUser(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	delUser, err := GetDelUserRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Status = http.StatusBadRequest
+		response.Message = err.Error()
+	} else {
+		errDel := DeleteUser(delUser)
+		if errDel != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Status = http.StatusBadRequest
+			response.Message = err.Error()
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Status = http.StatusOK
+			response.Message = DELETE_USER_SUCCESS
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+
+}
 
 // change name or email of a valid user
 func EditUser(w http.ResponseWriter, r *http.Request) {}

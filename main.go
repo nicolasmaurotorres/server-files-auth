@@ -13,10 +13,12 @@ const (
 
 	VALID_DATA_ENTRY = "valid_data_entry"
 
-	USER_CREATED_SUCCESS          = "user created success"
-	LOGOUT_SUCCESS                = "logout success"
-	CREATE_FOLDER_SUCCESS         = "folder created successfully"
-	DELETE_FOLDER_SUCCESS         = "folder deleted successfully"
+	USER_CREATED_SUCCESS  = "user created success"
+	LOGOUT_SUCCESS        = "logout success"
+	CREATE_FOLDER_SUCCESS = "folder created successfully"
+	DELETE_FOLDER_SUCCESS = "folder deleted successfully"
+	DELETE_USER_SUCCESS   = "user deleted successfully"
+
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
