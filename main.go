@@ -13,17 +13,19 @@ const (
 
 	VALID_DATA_ENTRY = "valid_data_entry"
 
-	USER_CREATED_SUCCESS  = "user created success"
-	LOGOUT_SUCCESS        = "logout success"
-	CREATE_FOLDER_SUCCESS = "folder created successfully"
-	DELETE_FOLDER_SUCCESS = "folder deleted successfully"
-	DELETE_USER_SUCCESS   = "user deleted successfully"
-
+	USER_CREATED_SUCCESS          = "user created success"
+	LOGOUT_SUCCESS                = "logout success"
+	CREATE_FOLDER_SUCCESS         = "folder created successfully"
+	DELETE_FOLDER_SUCCESS         = "folder deleted successfully"
+	DELETE_USER_SUCCESS           = "user deleted successfully"
+	RENAME_FOLDER_SUCCESS         = "renaming folder successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
 	ERROR_BAD_FORMED_NAME         = "the name cannot be empty"
 	ERROR_BAD_FORMED_TOKEN        = "the token cannot be empty"
+	ERROR_BAD_FORMED_OLD_NAME     = "the old name cannot be empty"
+	ERROR_BAD_FORMED_NEW_NAME     = "the new name cannot be empty"
 	ERROR_BAD_CATEGORY            = "the category is not valid"
 	ERROR_LOGIN_CREDENTIALS       = "email or password does not match"
 	ERROR_NOT_JSON_NEEDED         = "not valid json needeed"
@@ -39,6 +41,7 @@ const (
 	ERROR_SERVER                  = "error server"
 	ERROR_ADMIN_NOT_LOGUED        = "the admin is not logued"
 	ERROR_REQUIRE_LOGIN_AGAIN     = "login timeout"
+	ERROR_FOLDER_WITH_OPEN_FILE   = "the folder contains one opened file"
 )
 
 type Pair struct {

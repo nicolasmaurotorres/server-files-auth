@@ -195,3 +195,29 @@ func GetDelUserRequestFromJSONRequest(r *http.Request) (DelUserRequest, error) {
 	}
 	return toReturn, nil
 }
+
+type RenameFolderRequest struct {
+	Token     string `json:"token"`
+	OldFolder string `json:"oldfolder"`
+	NewFolder string `json:"newfolder"`
+}
+
+func RenameFolderRequestFromJSONRequest(r *http.Request) (RenameFolderRequest, error) {
+	var toReturn RenameFolderRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.OldFolder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_OLD_NAME)
+	}
+	if govalidator.IsNull(toReturn.NewFolder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_NEW_NAME)
+	}
+	return toReturn, nil
+}

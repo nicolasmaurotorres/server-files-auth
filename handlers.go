@@ -192,7 +192,6 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 	}
 	responseJSON, _ := json.Marshal(response)
 	w.Write(responseJSON)
-
 }
 
 // change name or email of a valid user
@@ -321,7 +320,29 @@ func DelFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func RenameFolder(w http.ResponseWriter, r *http.Request) {}
+func RenameFolder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	renameFolderRequest, err := RenameFolderRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errRenamFolder := RenameFolderDB(renameFolderRequest)
+		if errRenamFolder != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Message = errRenamFolder.Error()
+			response.Status = http.StatusBadRequest
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = RENAME_FOLDER_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 func RenameFile(w http.ResponseWriter, r *http.Request) {}
 

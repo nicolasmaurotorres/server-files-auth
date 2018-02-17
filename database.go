@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	s "strings"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -235,5 +236,44 @@ func DeleteUser(user DelUserRequest) error {
 			return errDelFolder
 		}
 	}
+	return nil
+}
+
+func RenameFolderDB(req RenameFolderRequest) error {
+	email := LogedUsers[req.Token].Email
+	openedFilesForUser, ptrs := OpenedFiles[req.Token]
+	found := false
+	if ptrs {
+		//significa que tiene archivos abiertos, tengo que verificar si la carpeta que quiere renombrar NO ESTE esta aqui
+		for _, val := range openedFilesForUser {
+			if s.Contains(val, req.OldFolder) {
+				found = true
+				break
+			}
+		}
+	}
+	if found {
+		return errors.New(ERROR_FOLDER_WITH_OPEN_FILE)
+	}
+	//el archivo no esta abierto, tengo que cambiarle el nombre
+	errRename := os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.OldFolder, BASE_PATH+email+PATH_OWN_FILES+req.NewFolder)
+	if errRename != nil {
+		return errRename
+	}
+	session := getSession()
+	defer session.Close()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := make(map[string]string)
+	query["email"] = email
+	query["directorys.path"] = email + PATH_OWN_FILES + req.OldFolder
+	update := bson.M{"$set": bson.M{"directorys.$.path": email + PATH_OWN_FILES + req.NewFolder}}
+	// hacer el update en la base de datos, el nombre repetido ya se ataja en el os.Rename dado que una carpeta no puede contener 2 carpetas con el mismo nombre, me aseguro
+	// de que ese error no va a pasar en la DB
+	errUpdate := collection.Update(query, update)
+	if errUpdate != nil {
+		os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.NewFolder, BASE_PATH+email+PATH_OWN_FILES+req.OldFolder) // vuelvo atras con el renombre
+		return errUpdate
+	}
+
 	return nil
 }

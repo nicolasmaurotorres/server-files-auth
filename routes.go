@@ -42,7 +42,7 @@ var routes = Routes{
 		AddUser,
 	},
 	Route{
-		"delUser",
+		"delUser", //ok
 		"POST",
 		"/admin/del",
 		DelUser,
@@ -68,19 +68,19 @@ var routes = Routes{
 	Route{
 		"renameFolder",
 		"POST",
-		"rename/folder",
+		"/rename/folder",
 		RenameFolder,
 	},
 	Route{
 		"renameFile",
 		"POST",
-		"rename/file",
+		"/rename/file",
 		RenameFile,
 	},
 	Route{
 		"moveFileToFolder",
 		"POST",
-		"move/file/folder",
+		"/move/file/folder",
 		MoveFileToFolder,
 	},
 	Route{
