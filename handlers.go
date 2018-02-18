@@ -208,11 +208,11 @@ func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		err := AddFileDoctorDB(addFileRequest, r)
+		err := AddFileDoctorDB(addFileRequest)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
-			response.Message = errToken.Error()
+			response.Message = err.Error()
 		} else {
 			w.WriteHeader(http.StatusOK)
 			response.Status = http.StatusOK

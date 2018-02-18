@@ -225,15 +225,15 @@ func RenameFolderRequestFromJSONRequest(r *http.Request) (RenameFolderRequest, e
 }
 
 type AddFileDoctorRequest struct {
-	Token  string `json:"token"`
-	Folder string `json:"folder"`
+	Token  string
+	Folder string
+	File   string
 }
 
 func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, error) {
 	var toReturn AddFileDoctorRequest
-	r.ParseMultipartForm(500 << 20)
-
-	file, handler, err := r.FormFile("file")
+	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
+	file, handler, err := r.FormFile("file") // obtengo el archivo del request
 	if err != nil {
 		fmt.Println(err)
 		return toReturn, err
@@ -241,8 +241,8 @@ func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, err
 	defer file.Close()
 	toReturn.Token = r.FormValue("token")
 	toReturn.Folder = r.FormValue("folder")
-	fmt.Println("token " + toReturn.Token)
-	fmt.Println("folder " + toReturn.Folder)
+	toReturn.File = handler.Filename
+
 	valid, errToken := IsValidToken(toReturn.Token, true)
 	if !valid {
 		fmt.Println("ERROR TOKEn")
@@ -251,18 +251,20 @@ func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, err
 	if govalidator.IsNull(toReturn.Folder) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
 	}
-	if govalidator.IsNull(toReturn.Folder) {
+	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
 	}
 	email := LogedUsers[toReturn.Token].Email
-	f, err := os.OpenFile(BASE_PATH+email+PATH_OWN_FILES+toReturn.Folder+SEPARATOR+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(BASE_PATH+email+PATH_OWN_FILES+toReturn.Folder+SEPARATOR+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println("ERROR ACA")
 		return toReturn, err
 	}
 	defer f.Close()
-	io.Copy(f, file)
-
+	_, errCopy := io.Copy(f, file) //copio lo del file del request al nuevo lugar
+	if errCopy != nil {
+		fmt.Println("error al copiar")
+		return toReturn, errCopy
+	}
 	return toReturn, nil
 }

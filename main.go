@@ -60,6 +60,7 @@ var SigningKeyPladema = []byte("S3cr37Sup3rPl4d3m4")
 var SigningKeyDoctor = []byte("Sup4S1cr1tD0ct0r")
 
 func main() {
+	// cd $GOPATH/src/github/nicolasmaurotorres/rest-api
 	// go build && ./rest-api
 	router := NewRouter()
 	log.Fatal(http.ListenAndServe(":8001", router))

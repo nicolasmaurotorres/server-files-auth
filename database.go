@@ -3,9 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"strconv"
 	s "strings"
@@ -24,13 +22,13 @@ const (
 	SEPARATOR           = string(os.PathSeparator)
 )
 
-type File struct {
+/*type File struct {
 	Name string
-}
+}*/
 
 type Directory struct {
-	Path  string `json:"path"`
-	Files []File `json:"files"`
+	Path  string   `json:"path"`
+	Files []string `json:"files"`
 }
 
 type User struct {
@@ -40,11 +38,11 @@ type User struct {
 }
 
 type UserDoctorDBO struct {
-	Category int8
-	Name     string
-	Email    string
-	Password string
-	Folders  []Directory
+	Category   int8
+	Name       string
+	Email      string
+	Password   string
+	Directorys []Directory
 }
 
 type UserPlademaDBO struct {
@@ -85,11 +83,13 @@ func NewUserDAL(user NewUserRequest) error {
 		os.Mkdir(BASE_PATH+userDoctor.Email, MODE_PERMITIONS)
 		os.Mkdir(BASE_PATH+userDoctor.Email+PATH_OWN_FILES, MODE_PERMITIONS)      // files sended by the doctor
 		os.Mkdir(BASE_PATH+userDoctor.Email+PATH_MODIFIED_FILES, MODE_PERMITIONS) // files modified by the pladema user
-		userDoctor.Folders = make([]Directory, 2)
-		userDoctor.Folders[0].Files = make([]File, 1)
-		userDoctor.Folders[0].Path = userDoctor.Email + PATH_OWN_FILES
-		userDoctor.Folders[1].Files = make([]File, 1)
-		userDoctor.Folders[1].Path = userDoctor.Email + PATH_MODIFIED_FILES
+		userDoctor.Directorys = make([]Directory, 2)
+		userDoctor.Directorys[0].Files = make([]string, 1)
+		userDoctor.Directorys[0].Files[0] = ""
+		userDoctor.Directorys[0].Path = userDoctor.Email + PATH_OWN_FILES
+		userDoctor.Directorys[1].Files = make([]string, 1)
+		userDoctor.Directorys[1].Files[0] = ""
+		userDoctor.Directorys[1].Path = userDoctor.Email + PATH_MODIFIED_FILES
 		err := collection.Insert(userDoctor)
 		if err != nil {
 			return errors.New(ERROR_INSERT_NEW_DOCTOR)
@@ -170,7 +170,8 @@ func CreateFolder(req AddFolderRequest) error {
 		return errCreate // no se pudo crear la carpeta
 	}
 	var newFolder Directory
-	newFolder.Files = make([]File, 1)
+	newFolder.Files = make([]string, 1)
+	newFolder.Files[0] = ""
 	newFolder.Path = email + PATH_OWN_FILES + req.Name
 	session := getSession()
 	defer session.Close()
@@ -282,39 +283,19 @@ func RenameFolderDB(req RenameFolderRequest) error {
 	return nil
 }
 
-func AddFileDoctorDB(req AddFileDoctorRequest, r *http.Request) error {
+func AddFileDoctorDB(req AddFileDoctorRequest) error {
 	email := LogedUsers[req.Token].Email
-	r.ParseMultipartForm(500 << 20) // 500MB max file size
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	defer file.Close()
-	newFile := BASE_PATH + email + SEPARATOR + PATH_OWN_FILES + req.Folder + SEPARATOR + handler.Filename
-	if _, err := os.Stat(newFile); err == nil {
-		return errors.New(ERROR_FILE_ALREADY_EXISTS) // the file already exists
-	}
-	f, err := os.OpenFile(newFile, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	defer f.Close()
-	_, errCopy := io.Copy(f, file) // copia el archivo "file" del form a "f"
-	if errCopy != nil {
-		return errCopy //archivo duplicado en la carpeta
-	}
 	session := getSession()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
 	query["email"] = email
-	query["directorys.path"] = email + SEPARATOR + PATH_OWN_FILES + req.Folder // carpeta a agregar el archivo
-	update := bson.M{"$push": bson.M{"files": bson.M{"name": handler.Filename}}}
+	query["directorys.path"] = email + PATH_OWN_FILES + req.Folder // carpeta a agregar el archivo
+	update := bson.M{"$addToSet": bson.M{"directorys.$.files": req.File}}
 	errUpdate := collection.Update(query, update)
 	if errUpdate != nil {
-		return errUpdate //TODO: tengo que eliminar el archivo que guarde
+		fmt.Println(errUpdate)
+		os.Remove(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File) //elimino el archivo que guarde
+		return errUpdate
 	}
-
 	return nil
 }
