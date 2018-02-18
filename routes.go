@@ -66,7 +66,7 @@ var routes = Routes{
 		DelFolder,
 	},
 	Route{
-		"renameFolder",
+		"renameFolder", // ok
 		"POST",
 		"/rename/folder",
 		RenameFolder,
@@ -84,10 +84,16 @@ var routes = Routes{
 		MoveFileToFolder,
 	},
 	Route{
-		"addFile", // tanto para doctor como para pladema
+		"addFileDoctor", // tanto para doctor como para pladema
 		"POST",
-		"/add/file",
-		AddFile,
+		"/doctor/add/file",
+		AddFileDoctor,
+	},
+	Route{
+		"addFilePladema", // tanto para doctor como para pladema
+		"POST",
+		"/doctor/add/file",
+		AddFilePladema,
 	},
 	Route{
 		"delFile",

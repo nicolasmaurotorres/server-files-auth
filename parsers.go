@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -219,5 +221,48 @@ func RenameFolderRequestFromJSONRequest(r *http.Request) (RenameFolderRequest, e
 	if govalidator.IsNull(toReturn.NewFolder) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_NEW_NAME)
 	}
+	return toReturn, nil
+}
+
+type AddFileDoctorRequest struct {
+	Token  string `json:"token"`
+	Folder string `json:"folder"`
+}
+
+func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, error) {
+	var toReturn AddFileDoctorRequest
+	r.ParseMultipartForm(500 << 20)
+
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		fmt.Println(err)
+		return toReturn, err
+	}
+	defer file.Close()
+	toReturn.Token = r.FormValue("token")
+	toReturn.Folder = r.FormValue("folder")
+	fmt.Println("token " + toReturn.Token)
+	fmt.Println("folder " + toReturn.Folder)
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		fmt.Println("ERROR TOKEn")
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+	}
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	email := LogedUsers[toReturn.Token].Email
+	f, err := os.OpenFile(BASE_PATH+email+PATH_OWN_FILES+toReturn.Folder+SEPARATOR+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("ERROR ACA")
+		return toReturn, err
+	}
+	defer f.Close()
+	io.Copy(f, file)
+
 	return toReturn, nil
 }

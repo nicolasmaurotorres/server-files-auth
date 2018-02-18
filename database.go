@@ -2,7 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	s "strings"
@@ -18,6 +21,7 @@ const (
 	PATH_OWN_FILES      = "/own/"
 	PATH_MODIFIED_FILES = "/modified/"
 	MODE_PERMITIONS     = 0755
+	SEPARATOR           = string(os.PathSeparator)
 )
 
 type File struct {
@@ -224,7 +228,7 @@ func DeleteUser(user DelUserRequest) error {
 	}
 
 	if user.Category == REQUEST_DOCTOR {
-		errDelFolder := os.RemoveAll(BASE_PATH + string(os.PathSeparator) + user.Email) //error deleting the folder
+		errDelFolder := os.RemoveAll(BASE_PATH + SEPARATOR + user.Email) //error deleting the folder
 		if errDelFolder != nil {
 			if theValue != nil {
 				LogedUsers[tokenDeletedUser] = theValue //"rollback"
@@ -273,6 +277,43 @@ func RenameFolderDB(req RenameFolderRequest) error {
 	if errUpdate != nil {
 		os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.NewFolder, BASE_PATH+email+PATH_OWN_FILES+req.OldFolder) // vuelvo atras con el renombre
 		return errUpdate
+	}
+
+	return nil
+}
+
+func AddFileDoctorDB(req AddFileDoctorRequest, r *http.Request) error {
+	email := LogedUsers[req.Token].Email
+	r.ParseMultipartForm(500 << 20) // 500MB max file size
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer file.Close()
+	newFile := BASE_PATH + email + SEPARATOR + PATH_OWN_FILES + req.Folder + SEPARATOR + handler.Filename
+	if _, err := os.Stat(newFile); err == nil {
+		return errors.New(ERROR_FILE_ALREADY_EXISTS) // the file already exists
+	}
+	f, err := os.OpenFile(newFile, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	defer f.Close()
+	_, errCopy := io.Copy(f, file) // copia el archivo "file" del form a "f"
+	if errCopy != nil {
+		return errCopy //archivo duplicado en la carpeta
+	}
+	session := getSession()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := make(map[string]string)
+	query["email"] = email
+	query["directorys.path"] = email + SEPARATOR + PATH_OWN_FILES + req.Folder // carpeta a agregar el archivo
+	update := bson.M{"$push": bson.M{"files": bson.M{"name": handler.Filename}}}
+	errUpdate := collection.Update(query, update)
+	if errUpdate != nil {
+		return errUpdate //TODO: tengo que eliminar el archivo que guarde
 	}
 
 	return nil

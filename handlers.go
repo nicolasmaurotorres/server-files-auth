@@ -36,6 +36,7 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
 	}
 	// control de pass y user que sean iguales
+	// TODO: hacer un hashing de la pass al enviarla desde el cleinte y al dar de alta en el servidor
 	if user.Password != userDBO.Password || user.Email != userDBO.Email {
 		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
 	}
@@ -198,7 +199,32 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 func EditUser(w http.ResponseWriter, r *http.Request) {}
 
 // add a file to visualize
-func AddFile(w http.ResponseWriter, r *http.Request) {}
+func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	addFileRequest, errToken := GetAddFileDoctorFromJSONRequest(r)
+	var response Response
+	if errToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Status = http.StatusBadRequest
+		response.Message = errToken.Error()
+	} else {
+		err := AddFileDoctorDB(addFileRequest, r)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Status = http.StatusBadRequest
+			response.Message = errToken.Error()
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Status = http.StatusOK
+			response.Message = DELETE_USER_SUCCESS
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
+
+// add a file modified by some pladema engeneeir
+func AddFilePladema(w http.ResponseWriter, r *http.Request) {}
 
 // remove a file of the hashtable of opened files
 func DelFile(w http.ResponseWriter, r *http.Request) {}

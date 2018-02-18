@@ -26,6 +26,8 @@ const (
 	ERROR_BAD_FORMED_TOKEN        = "the token cannot be empty"
 	ERROR_BAD_FORMED_OLD_NAME     = "the old name cannot be empty"
 	ERROR_BAD_FORMED_NEW_NAME     = "the new name cannot be empty"
+	ERROR_BAD_FORMED_FOLDER       = "the folder cannot be empty"
+	ERROR_BAD_FORMED_FILE_NAME    = "the file name cannot be empty"
 	ERROR_BAD_CATEGORY            = "the category is not valid"
 	ERROR_LOGIN_CREDENTIALS       = "email or password does not match"
 	ERROR_NOT_JSON_NEEDED         = "not valid json needeed"
@@ -42,6 +44,7 @@ const (
 	ERROR_ADMIN_NOT_LOGUED        = "the admin is not logued"
 	ERROR_REQUIRE_LOGIN_AGAIN     = "login timeout"
 	ERROR_FOLDER_WITH_OPEN_FILE   = "the folder contains one opened file"
+	ERROR_FILE_ALREADY_EXISTS     = "the file already exists"
 )
 
 type Pair struct {
