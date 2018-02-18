@@ -19,6 +19,8 @@ const (
 	DELETE_FOLDER_SUCCESS         = "folder deleted successfully"
 	DELETE_USER_SUCCESS           = "user deleted successfully"
 	RENAME_FOLDER_SUCCESS         = "renaming folder successfully"
+	FILE_ADD_SUCCESS              = "the file was added successfully"
+	FILE_DELETED_SUCCESS          = "the file was deleted successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
@@ -44,6 +46,7 @@ const (
 	ERROR_ADMIN_NOT_LOGUED        = "the admin is not logued"
 	ERROR_REQUIRE_LOGIN_AGAIN     = "login timeout"
 	ERROR_FOLDER_WITH_OPEN_FILE   = "the folder contains one opened file"
+	ERROR_FILE_OPENED             = "the file is opened, cannot be deleted"
 	ERROR_FILE_ALREADY_EXISTS     = "the file already exists"
 )
 

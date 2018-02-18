@@ -22,10 +22,6 @@ const (
 	SEPARATOR           = string(os.PathSeparator)
 )
 
-/*type File struct {
-	Name string
-}*/
-
 type Directory struct {
 	Path  string   `json:"path"`
 	Files []string `json:"files"`
@@ -151,18 +147,6 @@ func GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
 	return userToReturn, nil
 }
 
-func ExistsFolderUser(path string, email string) bool {
-	return false
-}
-
-func ExistsFileInPathUser(path string, file string, email string) bool {
-	return false
-}
-
-func AddNewFileToPath(path string, file string) error {
-	return nil
-}
-
 func CreateFolder(req AddFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	errCreate := os.Mkdir(BASE_PATH+email+PATH_OWN_FILES+req.Name, MODE_PERMITIONS) //checkeo si puedo crear la carpeta
@@ -283,7 +267,7 @@ func RenameFolderDB(req RenameFolderRequest) error {
 	return nil
 }
 
-func AddFileDoctorDB(req AddFileDoctorRequest) error {
+func AddFileDoctorDB(req AddFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	session := getSession()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
@@ -297,5 +281,36 @@ func AddFileDoctorDB(req AddFileDoctorRequest) error {
 		os.Remove(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File) //elimino el archivo que guarde
 		return errUpdate
 	}
+	return nil
+}
+
+func DelFileDoctorDB(req DelFileRequest) error {
+	email := LogedUsers[req.Token].Email
+
+	// checkeo que el archivo que se quiera eliminar NO este abierto
+	for _, value := range OpenedFiles[req.Token] {
+		if s.Contains(value, req.File) && s.Contains(value, req.Folder) {
+			//si contiene el nombre del archivo y el nombre de la carpeta , el archivo esta abierto
+			return errors.New(ERROR_FILE_OPENED)
+		}
+	}
+
+	errDel := os.Remove(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File)
+	if errDel != nil {
+		//error al intentar borrarlo del sistema de archivos, ya sea por que no existe o el path es invalido
+		return errDel
+	}
+
+	session := getSession()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := make(map[string]string)
+	query["email"] = email
+	query["directorys.path"] = email + PATH_OWN_FILES + req.Folder // carpeta a agregar el archivo
+	update := bson.M{"$pull": bson.M{"directorys.$.files": req.File}}
+	errUpdate := collection.Update(query, update)
+	if errUpdate != nil {
+		return errUpdate
+	}
+
 	return nil
 }

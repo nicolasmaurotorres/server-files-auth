@@ -84,7 +84,7 @@ var routes = Routes{
 		MoveFileToFolder,
 	},
 	Route{
-		"addFileDoctor", // tanto para doctor como para pladema
+		"addFileDoctor", // ok
 		"POST",
 		"/doctor/add/file",
 		AddFileDoctor,
@@ -96,7 +96,7 @@ var routes = Routes{
 		AddFilePladema,
 	},
 	Route{
-		"delFile",
+		"delFile", // ok
 		"POST",
 		"/doctor/del/file",
 		DelFile,
@@ -125,8 +125,8 @@ var routes = Routes{
 		"/login/admin",
 		SearchFiles,
 	},
-	Route{ // ok
-		"logout",
+	Route{
+		"logout", // ok
 		"POST",
 		"/logout",
 		Logout,

@@ -224,14 +224,14 @@ func RenameFolderRequestFromJSONRequest(r *http.Request) (RenameFolderRequest, e
 	return toReturn, nil
 }
 
-type AddFileDoctorRequest struct {
+type AddFileRequest struct {
 	Token  string
 	Folder string
 	File   string
 }
 
-func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, error) {
-	var toReturn AddFileDoctorRequest
+func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileRequest, error) {
+	var toReturn AddFileRequest
 	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
 	file, handler, err := r.FormFile("file") // obtengo el archivo del request
 	if err != nil {
@@ -265,6 +265,33 @@ func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileDoctorRequest, err
 	if errCopy != nil {
 		fmt.Println("error al copiar")
 		return toReturn, errCopy
+	}
+	return toReturn, nil
+}
+
+type DelFileRequest struct {
+	Token  string `json:"token"`
+	Folder string `json:"folder"`
+	File   string `json:"file"`
+}
+
+func GetDelFileDoctorFromJSONRequest(r *http.Request) (DelFileRequest, error) {
+	var toReturn DelFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+	}
+
+	if govalidator.IsNull(toReturn.File) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
 	}
 	return toReturn, nil
 }

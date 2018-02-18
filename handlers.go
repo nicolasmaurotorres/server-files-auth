@@ -216,7 +216,7 @@ func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.WriteHeader(http.StatusOK)
 			response.Status = http.StatusOK
-			response.Message = DELETE_USER_SUCCESS
+			response.Message = FILE_ADD_SUCCESS
 		}
 	}
 	responseJSON, _ := json.Marshal(response)
@@ -227,7 +227,30 @@ func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
 func AddFilePladema(w http.ResponseWriter, r *http.Request) {}
 
 // remove a file of the hashtable of opened files
-func DelFile(w http.ResponseWriter, r *http.Request) {}
+func DelFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	delFileRequest, errToken := GetDelFileDoctorFromJSONRequest(r)
+	var response Response
+	if errToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Status = http.StatusBadRequest
+		response.Message = errToken.Error()
+	} else {
+		err := DelFileDoctorDB(delFileRequest)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Status = http.StatusBadRequest
+			response.Message = err.Error()
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Status = http.StatusOK
+			response.Message = FILE_DELETED_SUCCESS
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+
+}
 
 // returns all files to visualize
 func AllFiles(w http.ResponseWriter, req *http.Request) {}
