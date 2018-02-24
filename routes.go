@@ -68,13 +68,13 @@ var routes = Routes{
 	Route{
 		"renameFolder", // ok
 		"POST",
-		"/rename/folder",
+		"/doctor/rename/folder",
 		RenameFolder,
 	},
 	Route{
-		"renameFile", //doing
+		"renameFile", // ok
 		"POST",
-		"/rename/file",
+		"/doctor/rename/file",
 		RenameFileDoctor,
 	},
 	Route{

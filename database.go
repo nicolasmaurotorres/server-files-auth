@@ -61,7 +61,6 @@ func getSession() *mgo.Session {
 	return session
 }
 
-// precondicion el email NO EXISTE
 func NewUserDAL(user NewUserRequest) error {
 	session := getSession()
 	defer session.Close()
@@ -114,7 +113,6 @@ func ExistsEmail(email string) bool {
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	var userResult User
-	//	fmt.Println("llegue ExistsE mail")
 	err := collection.Find(bson.M{"email": email}).One(&userResult)
 	if err != nil {
 		return false
@@ -346,5 +344,26 @@ func RenameFileDoctorDB(req RenameFileDoctorRequest) error {
 		os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileNew, BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileOld)
 		return errUpdate
 	}
+	return nil
+}
+
+func OpenFileBL(req OpenFileRequest) error {
+	email := LogedUsers[req.Token].Email
+	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
+		return errors.New(ERROR_FILE_NOT_EXISTS)
+	}
+	files, inMap := OpenedFiles[req.Token]
+	if inMap {
+		// el doctor tiene lagun archivo abierto
+		for key, value := range files {
+			fmt.Println("valor " + string(key) + " " + value)
+			if s.Contains(value, req.Folder+SEPARATOR+req.File) {
+				return errors.New(ERROR_FILE_ALREADY_OPENED)
+			}
+		}
+	}
+	// si no se encuentra abierto, lo agrego
+	OpenedFiles[req.Token] = make([]string, 1)
+	OpenedFiles[req.Token] = append(OpenedFiles[req.Folder], email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.File)
 	return nil
 }

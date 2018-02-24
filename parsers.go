@@ -100,7 +100,7 @@ func GetTokenStringFromLogoutRequest(r *http.Request) (bool, string) {
 	return false, ERROR_NOT_JSON_NEEDED
 }
 
-// IsValidToken returns if a token is valid or not, depends on the category of the token
+// IsValidToken returns if a token is valid or not
 func IsValidToken(tokenString string, checkTimeStamp bool) (bool, error) {
 	value, inMap := LogedUsers[tokenString]
 	if inMap {
@@ -318,6 +318,32 @@ func RenameFileRequestFromJSONRequest(r *http.Request) (RenameFileDoctorRequest,
 		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
 	}
 	if govalidator.IsNull(toReturn.FileOld) || govalidator.IsNull(toReturn.FileNew) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	return toReturn, nil
+}
+
+type OpenFileRequest struct {
+	Token  string `json:"token"`
+	File   string `json:"file"`
+	Folder string `json:"folder"`
+}
+
+func GetOpenFileRequestFromJSONRequest(r *http.Request) (OpenFileRequest, error) {
+	var toReturn OpenFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+	}
+	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
 	}
 	return toReturn, nil

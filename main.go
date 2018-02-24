@@ -22,6 +22,7 @@ const (
 	FILE_ADD_SUCCESS              = "the file was added successfully"
 	FILE_DELETED_SUCCESS          = "the file was deleted successfully"
 	RENAME_FILE_SUCCESS           = "the file was renamed successfully"
+	FILE_OPEN_SUCCESS             = "the file was opened successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
@@ -49,6 +50,8 @@ const (
 	ERROR_FOLDER_WITH_OPEN_FILE   = "the folder contains one opened file"
 	ERROR_FILE_OPENED             = "the file is opened, cannot be deleted"
 	ERROR_FILE_ALREADY_EXISTS     = "the file already exists"
+	ERROR_FILE_ALREADY_OPENED     = "the file is already opened"
+	ERROR_FILE_NOT_EXISTS         = "the file does not exists"
 )
 
 type Pair struct {

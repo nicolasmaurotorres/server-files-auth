@@ -256,7 +256,29 @@ func DelFile(w http.ResponseWriter, r *http.Request) {
 func AllFiles(w http.ResponseWriter, req *http.Request) {}
 
 // add to the hashtable the file that is opened
-func OpenFile(w http.ResponseWriter, r *http.Request) {}
+func OpenFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	openFileRequest, err := GetOpenFileRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errCreate := OpenFileBL(openFileRequest)
+		if errCreate != nil {
+			w.WriteHeader(http.StatusForbidden)
+			response.Message = errCreate.Error()
+			response.Status = http.StatusForbidden
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = FILE_OPEN_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 // remove a file of the hashtable of opened files
 func CloseFile(w http.ResponseWriter, r *http.Request) {}
