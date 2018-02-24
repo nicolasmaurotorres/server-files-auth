@@ -393,6 +393,28 @@ func RenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func RenameFile(w http.ResponseWriter, r *http.Request) {}
+func RenameFileDoctor(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	renameFileRequest, err := RenameFileRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errRenamFolder := RenameFileDoctorDB(renameFileRequest)
+		if errRenamFolder != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Message = errRenamFolder.Error()
+			response.Status = http.StatusBadRequest
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = RENAME_FILE_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 func MoveFileToFolder(w http.ResponseWriter, r *http.Request) {}

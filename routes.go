@@ -72,10 +72,10 @@ var routes = Routes{
 		RenameFolder,
 	},
 	Route{
-		"renameFile",
+		"renameFile", //doing
 		"POST",
 		"/rename/file",
-		RenameFile,
+		RenameFileDoctor,
 	},
 	Route{
 		"moveFileToFolder",

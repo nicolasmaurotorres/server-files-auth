@@ -270,6 +270,7 @@ func RenameFolderDB(req RenameFolderRequest) error {
 func AddFileDoctorDB(req AddFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	session := getSession()
+	defer session.Clone()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
 	query["email"] = email
@@ -286,7 +287,6 @@ func AddFileDoctorDB(req AddFileRequest) error {
 
 func DelFileDoctorDB(req DelFileRequest) error {
 	email := LogedUsers[req.Token].Email
-
 	// checkeo que el archivo que se quiera eliminar NO este abierto
 	for _, value := range OpenedFiles[req.Token] {
 		if s.Contains(value, req.File) && s.Contains(value, req.Folder) {
@@ -294,14 +294,13 @@ func DelFileDoctorDB(req DelFileRequest) error {
 			return errors.New(ERROR_FILE_OPENED)
 		}
 	}
-
 	errDel := os.Remove(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File)
 	if errDel != nil {
 		//error al intentar borrarlo del sistema de archivos, ya sea por que no existe o el path es invalido
 		return errDel
 	}
-
 	session := getSession()
+	defer session.Clone()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
 	query["email"] = email
@@ -311,6 +310,41 @@ func DelFileDoctorDB(req DelFileRequest) error {
 	if errUpdate != nil {
 		return errUpdate
 	}
+	return nil
+}
 
+type list []interface{}
+
+func RenameFileDoctorDB(req RenameFileDoctorRequest) error {
+	files, inMap := OpenedFiles[req.Token]
+	if inMap {
+		//el usuario tiene algun archivo abierto,
+		for _, value := range files {
+			if value == req.FileOld {
+				return errors.New(ERROR_FILE_OPENED) // el archivo que quiere cambiarle el nombre, esta abierto por algun proceso, no puede cambiarle el nombre
+			}
+		}
+		return errors.New(ERROR_SERVER) // no deberia pasar NUNCA, dado que si se encuentra en el mapa, tiene que haber algun archivo abierto
+	}
+	email := LogedUsers[req.Token].Email
+	errChange := os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileOld, BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileNew)
+	if errChange != nil {
+		return errChange
+	}
+	session := getSession()
+	defer session.Clone()
+	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
+	query := make(map[string]string)
+	query["email"] = email
+	query["directorys.path"] = email + PATH_OWN_FILES + req.Folder
+	query["directorys.files"] = req.FileOld
+	update := bson.M{"$set": bson.M{"directorys.$[].files.$[selectedFile]": req.FileNew}}
+	filters := list{bson.M{"selectedFile": req.FileOld}}
+	errUpdate := collection.UpdateArrayFilters(query, update, filters)
+	if errUpdate != nil {
+		//vuelvo atras con el nombre que tenia antes el archivo
+		os.Rename(BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileNew, BASE_PATH+email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.FileOld)
+		return errUpdate
+	}
 	return nil
 }

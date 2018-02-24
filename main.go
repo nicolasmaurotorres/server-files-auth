@@ -21,6 +21,7 @@ const (
 	RENAME_FOLDER_SUCCESS         = "renaming folder successfully"
 	FILE_ADD_SUCCESS              = "the file was added successfully"
 	FILE_DELETED_SUCCESS          = "the file was deleted successfully"
+	RENAME_FILE_SUCCESS           = "the file was renamed successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"

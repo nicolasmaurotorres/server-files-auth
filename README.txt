@@ -4,27 +4,57 @@ Referential Links:
 - https://www.thepolyglotdeveloper.com/2017/03/authenticate-a-golang-api-with-json-web-tokens/
 - https://thenewstack.io/make-a-restful-json-api-go/
 
-**** Installation of MongoDB ****
+**** Installation of MongoDB 3.6****
 
-- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
-- echo "deb http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+- echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list
 - sudo apt-get update
 - sudo apt-get install -y mongodb-org
-- sudo nano /etc/systemd/system/mongodb.service
-	[Unit]
-	Description=High-performance, schema-free document-oriented database
-	After=network.target
+- sudo mkdir -p /data/db //carpeta para mongod
+- sudo chown -R `id -u` /data/db // permisos para mongod
+- sudo su // para activar el servicio de mongod
+- nano /lib/systemd/system/mongodb.service
+		[Unit]
+		Description=MongoDB Database Service
+		Wants=network.target
+		After=network.target
 
-	[Service]
-	User=mongodb
-	ExecStart=/usr/bin/mongod --quiet --config /etc/mongod.conf
+		[Service]
+		ExecStart=/usr/bin/mongod --config /etc/mongod.conf
+		ExecReload=/bin/kill -HUP $MAINPID
+		Restart=always
+		User=mongodb
+		Group=mongodb
+		StandardOutput=syslog
+		StandardError=syslog
 
-	[Install]
-	WantedBy=multi-user.target
-- sudo systemctl start mongodb  # StartMongoDB
-- sudo systemctl status mongodb # Check MongoDB Status
-- sudo systemctl enable mongodb # Autostart on start up
+		[Install]
+		WantedBy=multi-user.target
 
+- sudo systemctl start mongodb // start mongod
+- sudo systemctl enable mongodb.service // start mongod on startup
+
+*** DEFAULT DATA IN DB ***
+- In the console you have to add the default user admin/admin 
+	* mongo
+	* use tesis
+	* db.createCollection("users")
+	* db.users.insert({"category":"2","email":"admin","password":"admin"})
+
+- defaults users only for testing
+	* db.users.insert({"category":"1","email":"pladema@pladema.com","password":"pladema","name":"pladema"})
+	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor",
+	"directorys":
+	[{
+		"path":"doctor@doctor.com/own/",
+		"files":[""]
+	},
+	{
+		"path":"doctor@doctor.com/modified/",
+		"files":[""]
+	}
+	]})
+	
 **** Installation of Golang ****
 - sudo apt-get update
 - sudo apt-get -y upgrade
@@ -44,29 +74,27 @@ Referential Links:
 	func main() {
     		fmt.Printf("Welcome To ITzGeek\n")
 	}
+	
+** modifiyed file ** - snavarro89
+- package gopkg.in/mgo.v2
+- file "session.go" , add this funcion
+func (c *Collection) UpdateArrayFilters(selector interface{}, update interface{}, arrayfilters []interface{}) error {
 
-- in the console you have to add the default user admin/admin 
-	* mongo
-	* use tesis
-	* db.createCollection("users")
-	* db.users.insert({"category":"2","email":"admin","password":"admin"})
-
-- defaults users only for testing
-	* db.users.insert({"category":"1","email":"pladema@pladema.com","password":"pladema","name":"pladema"})
-	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor",
-	"directorys":
-	[{
-		"path":"doctor@doctor.com/own/",
-		"files":
-		[{
-			"name":""
-		}]
-	},
-	{
-		"path":"doctor@doctor.com/modified/",
-		"files":
-		[{
-			"name":""
-		}]
+	if selector == nil {
+		selector = bson.D{}
 	}
-	]})
+	op := updateOp{
+		Collection:   c.FullName,
+		Selector:     selector,
+		Update:       update,
+		ArrayFilters: arrayfilters,
+	}
+	
+	lerr, err := c.writeOp(&op, true)
+	if err == nil && lerr != nil && !lerr.UpdatedExisting {
+		return ErrNotFound
+	}
+	return err
+	}
+- file "socket.go", struct "updateOp" add this field 
+ArrayFilters []interface{} `bson:"arrayFilters,omitempty"`
