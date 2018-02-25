@@ -348,3 +348,29 @@ func GetOpenFileRequestFromJSONRequest(r *http.Request) (OpenFileRequest, error)
 	}
 	return toReturn, nil
 }
+
+type CloseFileRequest struct {
+	Token  string `json:"token"`
+	File   string `json:"file"`
+	Folder string `json:"folder"`
+}
+
+func GetCloseFileRequestFromJSONRequest(r *http.Request) (CloseFileRequest, error) {
+	var toReturn CloseFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	valid, errToken := IsValidToken(toReturn.Token, true)
+	if !valid {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.Folder) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+	}
+	if govalidator.IsNull(toReturn.File) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	return toReturn, nil
+}

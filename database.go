@@ -347,10 +347,10 @@ func RenameFileDoctorDB(req RenameFileDoctorRequest) error {
 	return nil
 }
 
-func OpenFileBL(req OpenFileRequest) error {
+func OpenFileBL(req OpenFileRequest) (string, error) {
 	email := LogedUsers[req.Token].Email
 	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
-		return errors.New(ERROR_FILE_NOT_EXISTS)
+		return "", errors.New(ERROR_FILE_NOT_EXISTS)
 	}
 	files, inMap := OpenedFiles[req.Token]
 	if inMap {
@@ -358,12 +358,41 @@ func OpenFileBL(req OpenFileRequest) error {
 		for key, value := range files {
 			fmt.Println("valor " + string(key) + " " + value)
 			if s.Contains(value, req.Folder+SEPARATOR+req.File) {
-				return errors.New(ERROR_FILE_ALREADY_OPENED)
+				return "", errors.New(ERROR_FILE_ALREADY_OPENED)
+			}
+		}
+		// ninguno de los archivos abierto coincide, lo agrego
+		OpenedFiles[req.Token] = append(OpenedFiles[req.Token], email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.File)
+		return BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File, nil
+	}
+	// no tiene archivos abiertos, creo un nuevo arreglo
+	OpenedFiles[req.Token] = append(OpenedFiles[req.Token], email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.File)
+	return BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File, nil
+}
+
+//elimina un objeto en una posicion del arreglo
+func remove(s []string, i int) []string {
+	s[len(s)-1], s[i] = s[i], s[len(s)-1]
+	return s[:len(s)-1]
+}
+
+func CloseFileBL(req CloseFileRequest) error {
+	email := LogedUsers[req.Token].Email
+	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
+		return errors.New(ERROR_FILE_NOT_EXISTS)
+	}
+	files, inMap := OpenedFiles[req.Token]
+	if inMap {
+		// tiene algun archivo abierto
+		for key, value := range files {
+			fmt.Println("value:" + value)
+			if s.Contains(value, req.Folder+SEPARATOR+req.File) {
+				// elimino el archivo del array
+				OpenedFiles[req.Token] = remove(files, key)
+				fmt.Println(OpenedFiles[req.Token])
+				return nil
 			}
 		}
 	}
-	// si no se encuentra abierto, lo agrego
-	OpenedFiles[req.Token] = make([]string, 1)
-	OpenedFiles[req.Token] = append(OpenedFiles[req.Folder], email+PATH_OWN_FILES+req.Folder+SEPARATOR+req.File)
-	return nil
+	return errors.New(ERROR_FILE_NOT_OPENED)
 }

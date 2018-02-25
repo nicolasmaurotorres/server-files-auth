@@ -265,14 +265,14 @@ func OpenFile(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errCreate := OpenFileBL(openFileRequest)
+		folder, errCreate := OpenFileBL(openFileRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
 			response.Status = http.StatusForbidden
 		} else {
 			w.WriteHeader(http.StatusOK)
-			response.Message = FILE_OPEN_SUCCESS
+			response.Message = folder
 			response.Status = http.StatusOK
 		}
 	}
@@ -281,7 +281,29 @@ func OpenFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // remove a file of the hashtable of opened files
-func CloseFile(w http.ResponseWriter, r *http.Request) {}
+func CloseFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	closeFileRequest, err := GetCloseFileRequestFromJSONRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errCreate := CloseFileBL(closeFileRequest)
+		if errCreate != nil {
+			w.WriteHeader(http.StatusForbidden)
+			response.Message = errCreate.Error()
+			response.Status = http.StatusForbidden
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = FILE_CLOSE_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 // search in the files by some filters on json object and return a json object with the result
 func SearchFiles(w http.ResponseWriter, r *http.Request) {}

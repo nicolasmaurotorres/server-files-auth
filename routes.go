@@ -108,13 +108,13 @@ var routes = Routes{
 		AllFiles,
 	},
 	Route{
-		"openFile",
+		"openFile", // ok
 		"POST",
 		"/doctor/open/file",
 		OpenFile,
 	},
 	Route{
-		"closeFile",
+		"closeFile", //
 		"POST",
 		"/doctor/close/file",
 		CloseFile,
