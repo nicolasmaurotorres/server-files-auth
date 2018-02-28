@@ -13,32 +13,54 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+// IsValidToken returns if a token is valid or not
+func IsValidToken(tokenString string, checkTimeStamp bool) error {
+	value, inMap := LogedUsers[tokenString]
+	if inMap {
+		if checkTimeStamp {
+			diff := time.Now().Sub(value.TimeLogIn)
+			minutesDiff := math.Abs(diff.Minutes())
+			if minutesDiff > 5 {
+				delete(LogedUsers, tokenString) // lo elimino por tiempo invalido
+				return errors.New(ERROR_REQUIRE_LOGIN_AGAIN)
+			}
+			LogedUsers[tokenString].TimeLogIn = time.Now() // actualizo el tiempo que se checkeo el token
+			return nil
+		}
+		return nil
+	}
+	return errors.New(ERROR_NOT_LOGUED_USER)
+}
+
 type UserLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func GetLoginJSONRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
+func ParseUserLoginRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
 	var user UserLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
 	if err == nil { // no hay errores de json mal formado
 		if cat != REQUEST_ADMIN {
+			// usuario pladema o doctor
 			if !govalidator.IsEmail(user.Email) {
 				return user, errors.New(ERROR_BAD_FORMED_EMAIL)
 			}
 		} else {
+			// usuario admin
 			if govalidator.IsNull(user.Email) {
-				return user, errors.New(ERROR_BAD_FORMED_PASSWORD)
+				return user, errors.New(ERROR_BAD_FORMED_EMAIL_EMPTY)
 			}
 		}
-		// validate the name is not empty or missing
+		// validate the password is not empty or missing
 		if govalidator.IsNull(user.Password) {
 			return user, errors.New(ERROR_BAD_FORMED_PASSWORD)
 		}
 		return user, nil
 	}
-	return user, errors.New(ERROR_NOT_JSON_NEEDED)
+	// hay error de parsing json
+	return user, err
 }
 
 type NewUserRequest struct {
@@ -50,7 +72,7 @@ type NewUserRequest struct {
 }
 
 // GetNewUserJSONRequest returns a user with valid data
-func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
+func ParseNewUserRequest(r *http.Request) (NewUserRequest, error) {
 	var newUserRequest NewUserRequest
 	err := json.NewDecoder(r.Body).Decode(&newUserRequest)
 	defer r.Body.Close()
@@ -59,9 +81,9 @@ func GetNewUserJSONRequest(r *http.Request) (NewUserRequest, error) {
 		//the json input is valid but we have to check the data values
 		return newUserRequest, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errorMessage := IsValidToken(newUserRequest.Token, true)
-	if !valid {
-		return newUserRequest, errors.New(errorMessage.Error())
+	errorMessage := IsValidToken(newUserRequest.Token, true)
+	if errorMessage != nil {
+		return newUserRequest, errorMessage
 	}
 
 	if !govalidator.IsEmail(newUserRequest.Email) {
@@ -90,33 +112,18 @@ type JwtToken struct {
 	Token string `json:"token"`
 }
 
-func GetTokenStringFromLogoutRequest(r *http.Request) (bool, string) {
+func ParseLogoutRequest(r *http.Request) (JwtToken, error) {
 	var userLogoutRequest JwtToken
 	err := json.NewDecoder(r.Body).Decode(&userLogoutRequest)
 	defer r.Body.Close()
 	if err == nil {
-		return true, userLogoutRequest.Token
+		return userLogoutRequest, err
 	}
-	return false, ERROR_NOT_JSON_NEEDED
-}
-
-// IsValidToken returns if a token is valid or not
-func IsValidToken(tokenString string, checkTimeStamp bool) (bool, error) {
-	value, inMap := LogedUsers[tokenString]
-	if inMap {
-		if checkTimeStamp {
-			diff := time.Now().Sub(value.TimeLogIn)
-			minutesDiff := math.Abs(diff.Minutes())
-			if minutesDiff > 5 {
-				delete(LogedUsers, tokenString) // lo elimino por tiempo invalido
-				return false, errors.New(ERROR_REQUIRE_LOGIN_AGAIN)
-			}
-			LogedUsers[tokenString].TimeLogIn = time.Now() // actualizo el tiempo que se checkeo el token
-			return true, nil
-		}
-		return true, nil
+	errValid := IsValidToken(userLogoutRequest.Token, false)
+	if errValid != nil {
+		return userLogoutRequest, errValid
 	}
-	return false, errors.New(ERROR_NOT_LOGUED_USER)
+	return userLogoutRequest, nil
 }
 
 type AddFolderRequest struct {
@@ -124,16 +131,16 @@ type AddFolderRequest struct {
 	Name  string `json:"name"`
 }
 
-func GetAddFolderRequestFromJSONRequest(r *http.Request) (AddFolderRequest, error) {
+func ParseAddFolderRequest(r *http.Request) (AddFolderRequest, error) {
 	var toReturn AddFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, err := IsValidToken(toReturn.Token, true)
-	if !valid {
-		return toReturn, err
+	errValid := IsValidToken(toReturn.Token, true)
+	if errValid != nil {
+		return toReturn, errValid
 	}
 	if govalidator.IsNull(toReturn.Token) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
@@ -149,16 +156,16 @@ type DelFolderRequest struct {
 	Folder string `json:"folder"`
 }
 
-func GetDelFolderRequestFromJSONRequest(r *http.Request) (DelFolderRequest, error) {
+func ParseDelFolderRequest(r *http.Request) (DelFolderRequest, error) {
 	var toReturn DelFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, err := IsValidToken(toReturn.Token, true)
-	if !valid {
-		return toReturn, err
+	errValid := IsValidToken(toReturn.Token, true)
+	if errValid != nil {
+		return toReturn, errValid
 	}
 	if govalidator.IsNull(toReturn.Token) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
@@ -175,15 +182,15 @@ type DelUserRequest struct {
 	Category int8   `json:"category"` // 0 doctor, 1 pladema
 }
 
-func GetDelUserRequestFromJSONRequest(r *http.Request) (DelUserRequest, error) {
+func ParseDelUserRequest(r *http.Request) (DelUserRequest, error) {
 	var toReturn DelUserRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if !govalidator.IsEmail(toReturn.Email) {
@@ -204,15 +211,15 @@ type RenameFolderRequest struct {
 	NewFolder string `json:"newfolder"`
 }
 
-func RenameFolderRequestFromJSONRequest(r *http.Request) (RenameFolderRequest, error) {
+func ParseRenameFolderRequest(r *http.Request) (RenameFolderRequest, error) {
 	var toReturn RenameFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.OldFolder) {
@@ -230,7 +237,7 @@ type AddFileRequest struct {
 	File   string
 }
 
-func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileRequest, error) {
+func ParseAddFileRequest(r *http.Request) (AddFileRequest, error) {
 	var toReturn AddFileRequest
 	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
 	file, handler, err := r.FormFile("file") // obtengo el archivo del request
@@ -243,9 +250,8 @@ func GetAddFileDoctorFromJSONRequest(r *http.Request) (AddFileRequest, error) {
 	toReturn.Folder = r.FormValue("folder")
 	toReturn.File = handler.Filename
 
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
-		fmt.Println("ERROR TOKEn")
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
@@ -275,15 +281,15 @@ type DelFileRequest struct {
 	File   string `json:"file"`
 }
 
-func GetDelFileDoctorFromJSONRequest(r *http.Request) (DelFileRequest, error) {
+func ParseDelFileRequest(r *http.Request) (DelFileRequest, error) {
 	var toReturn DelFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
@@ -303,15 +309,15 @@ type RenameFileDoctorRequest struct {
 	Folder  string `json:"folder"`
 }
 
-func RenameFileRequestFromJSONRequest(r *http.Request) (RenameFileDoctorRequest, error) {
+func ParseRenameFileDoctorRequest(r *http.Request) (RenameFileDoctorRequest, error) {
 	var toReturn RenameFileDoctorRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
@@ -329,15 +335,15 @@ type OpenFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func GetOpenFileRequestFromJSONRequest(r *http.Request) (OpenFileRequest, error) {
+func ParseOpenFileRequest(r *http.Request) (OpenFileRequest, error) {
 	var toReturn OpenFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
@@ -355,15 +361,15 @@ type CloseFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func GetCloseFileRequestFromJSONRequest(r *http.Request) (CloseFileRequest, error) {
+func ParseCloseFileRequest(r *http.Request) (CloseFileRequest, error) {
 	var toReturn CloseFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	valid, errToken := IsValidToken(toReturn.Token, true)
-	if !valid {
+	errToken := IsValidToken(toReturn.Token, true)
+	if errToken != nil {
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {

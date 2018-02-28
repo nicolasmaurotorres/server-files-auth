@@ -54,6 +54,7 @@ const (
 	ERROR_FILE_ALREADY_OPENED     = "the file is already opened"
 	ERROR_FILE_NOT_EXISTS         = "the file does not exists"
 	ERROR_FILE_NOT_OPENED         = "the file is not opened"
+	ERROR_BAD_FORMED_EMAIL_EMPTY  = "the email is empty"
 )
 
 type Pair struct {

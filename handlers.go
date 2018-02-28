@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -58,99 +57,78 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 }
 
 func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
-	user, err := GetLoginJSONRequest(r, cat)
+	user, err := ParseUserLoginRequest(r, cat)
+	var toReturn JwtToken
 	if err != nil {
-		fmt.Println(err.Error())
-		return JwtToken{Token: ""}, err
+		return toReturn, err
 	}
 	token, err := GenerateToken(user, cat)
 	if err != nil {
-		return JwtToken{Token: ""}, err
+		return toReturn, err
 	}
 	return token, nil
-}
-
-// returns the error of login
-func GetLoginError(err string) ([]byte, int) {
-	var e Response
-	switch err {
-	case ERROR_BAD_FORMED_EMAIL:
-		e.Status = http.StatusBadRequest
-		break
-	case ERROR_BAD_FORMED_PASSWORD:
-		e.Status = http.StatusBadRequest
-		break
-	case ERROR_NOT_JSON_NEEDED:
-		e.Status = http.StatusBadRequest
-		break
-	case ERROR_USER_ALREADY_LOGUED:
-		e.Status = http.StatusForbidden
-		break
-	case ERROR_SERVER:
-		e.Status = http.StatusInternalServerError
-		break
-	default:
-		e.Status = http.StatusForbidden
-		break
-	}
-	e.Message = err
-	exceptionJSON, _ := json.Marshal(e)
-	return exceptionJSON, e.Status
 }
 
 // returns a auth token as doctor user
 func LoginDoctor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	var response Response
 	token, err := LoginPerson(REQUEST_DOCTOR, r)
 	if err != nil {
-		exceptionJSON, status := GetLoginError(err.Error())
-		w.WriteHeader(status)
-		w.Write(exceptionJSON)
+		w.WriteHeader(http.StatusBadGateway)
+		response.Message = err.Error()
+		response.Status = http.StatusBadGateway
 	} else {
 		w.WriteHeader(http.StatusOK)
-		tokenJSON, _ := json.Marshal(token)
-		w.Write(tokenJSON)
+		response.Message = token.Token
+		response.Status = http.StatusOK
 	}
+	tokenJSON, _ := json.Marshal(token)
+	w.Write(tokenJSON)
 }
 
 // returns a auth token as pladema user
 func LoginPladema(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	var response Response
 	token, err := LoginPerson(REQUEST_PLADEMA, r)
 	if err != nil {
-		exceptionJSON, status := GetLoginError(err.Error())
-		w.WriteHeader(status)
-		w.Write(exceptionJSON)
+		w.WriteHeader(http.StatusBadGateway)
+		response.Message = err.Error()
+		response.Status = http.StatusBadGateway
 	} else {
 		w.WriteHeader(http.StatusOK)
-		tokenJSON, _ := json.Marshal(token)
-		w.Write(tokenJSON)
+		response.Message = token.Token
+		response.Status = http.StatusOK
 	}
+	tokenJSON, _ := json.Marshal(token)
+	w.Write(tokenJSON)
 }
 
 // returns a auth token as admin user
 func LoginAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	var response Response
 	token, err := LoginPerson(REQUEST_ADMIN, r)
 	if err != nil {
-		exceptionJSON, status := GetLoginError(err.Error())
-		w.WriteHeader(status)
-		w.Write(exceptionJSON)
-
+		w.WriteHeader(http.StatusBadGateway)
+		response.Message = err.Error()
+		response.Status = http.StatusBadGateway
 	} else {
 		w.WriteHeader(http.StatusOK)
-		tokenJSON, _ := json.Marshal(token)
-		w.Write(tokenJSON)
+		response.Message = token.Token
+		response.Status = http.StatusOK
 	}
+	tokenJSON, _ := json.Marshal(token)
+	w.Write(tokenJSON)
 }
 
 // add a new user with the data on a json
 func AddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	newUser, erro := GetNewUserJSONRequest(r)
+	newUser, erro := ParseNewUserRequest(r)
 	var response Response
 	if erro == nil {
-		//	fmt.Println("pase por addUser sin error")
 		err := NewUserDAL(newUser)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -173,7 +151,7 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 // delete some valid user with the data on a json
 func DelUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delUser, err := GetDelUserRequestFromJSONRequest(r)
+	delUser, err := ParseDelUserRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -201,7 +179,7 @@ func EditUser(w http.ResponseWriter, r *http.Request) {}
 // add a file to visualize
 func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	addFileRequest, errToken := GetAddFileDoctorFromJSONRequest(r)
+	addFileRequest, errToken := ParseAddFileRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -229,7 +207,7 @@ func AddFilePladema(w http.ResponseWriter, r *http.Request) {}
 // remove a file of the hashtable of opened files
 func DelFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delFileRequest, errToken := GetDelFileDoctorFromJSONRequest(r)
+	delFileRequest, errToken := ParseDelFileRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -258,7 +236,7 @@ func AllFiles(w http.ResponseWriter, req *http.Request) {}
 // add to the hashtable the file that is opened
 func OpenFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	openFileRequest, err := GetOpenFileRequestFromJSONRequest(r)
+	openFileRequest, err := ParseOpenFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -283,7 +261,7 @@ func OpenFile(w http.ResponseWriter, r *http.Request) {
 // remove a file of the hashtable of opened files
 func CloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	closeFileRequest, err := GetCloseFileRequestFromJSONRequest(r)
+	closeFileRequest, err := ParseCloseFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -308,66 +286,38 @@ func CloseFile(w http.ResponseWriter, r *http.Request) {
 // search in the files by some filters on json object and return a json object with the result
 func SearchFiles(w http.ResponseWriter, r *http.Request) {}
 
-func RoutineLogout(w http.ResponseWriter, tokenString string) bool {
-	var response Response
-	validToken, errorMessage := IsValidToken(tokenString, false)
-	if validToken {
-		_, inMap := LogedUsers[tokenString]
-		if inMap {
-			w.WriteHeader(http.StatusOK)
-			delete(LogedUsers, tokenString) // elimino al usuario
-			response.Message = LOGOUT_SUCCESS
-			response.Status = http.StatusOK
-			responseJSON, _ := json.Marshal(response)
-			w.Write(responseJSON)
-			return true
-		}
-		// el usuario que esta intentando desloguearse, no esta logueado, es un error, es un token valido pero no esta
-		// en la hash, tiramos otro mensaje de error para despistar :V
-		w.WriteHeader(http.StatusForbidden)
-		response.Message = ERROR_NOT_VALID_TOKEN
-		response.Status = http.StatusForbidden
-		responseJSON, _ := json.Marshal(response)
-		w.Write(responseJSON)
-		return false
-	}
-	// no es un token valido
-	w.WriteHeader(http.StatusForbidden)
-	response.Message = errorMessage.Error()
-	response.Status = http.StatusForbidden
-	responseJSON, _ := json.Marshal(response)
-	w.Write(responseJSON)
-	return false
-}
-
-// logout a admin user
 func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	valid, tokenString := GetTokenStringFromLogoutRequest(r)
+	token, err := ParseLogoutRequest(r)
 	var response Response
-	if valid {
-		inMap, err := IsValidToken(tokenString, false)
-		if inMap {
-			RoutineLogout(w, tokenString)
-		} else {
-			w.WriteHeader(http.StatusForbidden)
-			response.Message = err.Error()
-			response.Status = http.StatusBadRequest
-			responseJSON, _ := json.Marshal(response)
-			w.Write(responseJSON)
-		}
-	} else {
+	if err != nil {
+		// hay un error
 		w.WriteHeader(http.StatusBadRequest)
-		response.Message = ERROR_NOT_JSON_NEEDED
+		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
-		responseJSON, _ := json.Marshal(response)
-		w.Write(responseJSON)
+	} else {
+		// checkeo si el token esta en memoria
+		_, inMap := LogedUsers[token.Token]
+		if inMap {
+			w.WriteHeader(http.StatusOK)
+			delete(LogedUsers, token.Token) // elimino al usuario
+			response.Message = LOGOUT_SUCCESS
+			response.Status = http.StatusOK
+		} else {
+			// el usuario que esta intentando desloguearse, no esta logueado, es un error, es un token valido pero no esta
+			// en la hash, tiramos otro mensaje de error para despistar :V
+			w.WriteHeader(http.StatusForbidden)
+			response.Message = ERROR_NOT_VALID_TOKEN
+			response.Status = http.StatusForbidden
+		}
 	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
 }
 
 func AddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	folderRequest, err := GetAddFolderRequestFromJSONRequest(r)
+	folderRequest, err := ParseAddFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -391,7 +341,7 @@ func AddFolder(w http.ResponseWriter, r *http.Request) {
 
 func DelFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delFolderRequest, err := GetDelFolderRequestFromJSONRequest(r)
+	delFolderRequest, err := ParseDelFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -415,7 +365,7 @@ func DelFolder(w http.ResponseWriter, r *http.Request) {
 
 func RenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFolderRequest, err := RenameFolderRequestFromJSONRequest(r)
+	renameFolderRequest, err := ParseRenameFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -439,7 +389,7 @@ func RenameFolder(w http.ResponseWriter, r *http.Request) {
 
 func RenameFileDoctor(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFileRequest, err := RenameFileRequestFromJSONRequest(r)
+	renameFileRequest, err := ParseRenameFileDoctorRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
