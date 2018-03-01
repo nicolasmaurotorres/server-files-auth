@@ -17,95 +17,92 @@ type Routes []Route
 
 // variable to contain all the routes of the api
 var routes = Routes{
+	//Logins
 	Route{
-		"loginDoctor", // ok
+		"DoctorLogin", // ok
 		"POST",
-		"/login/doctor",
-		LoginDoctor,
+		"/doctor/login/",
+		DoctorLogin,
 	},
 	Route{
-		"loginPladema", // ok
+		"PlademaLogin", // ok
 		"POST",
-		"/login/pladema",
-		LoginPladema,
+		"/pladema/login",
+		PlademaLogin,
 	},
 	Route{
-		"loginAdmin", // ok
+		"AdminLogin", // ok
 		"POST",
-		"/login/admin",
-		LoginAdmin,
+		"/admin/login",
+		AdminLogin,
+	},
+	//admin operations
+	Route{
+		"AdminAddUser", // ok
+		"POST",
+		"/admin/add/user",
+		AdminAddUser,
 	},
 	Route{
-		"addUser", // ok
+		"AdminDeleteUser", //ok
 		"POST",
-		"/admin/add",
-		AddUser,
+		"/admin/delete/user",
+		AdminDeleteUser,
+	},
+	Route{ //TODO:
+		"AdminEditUser",
+		"POST",
+		"/admin/edit/user",
+		AdminEditUser,
+	},
+	//Doctor operations
+	Route{
+		"DoctorAddFolder", // ok
+		"POST",
+		"/doctor/add/folder",
+		DoctorAddFolder,
 	},
 	Route{
-		"delUser", //ok
+		"DoctorDeleteFolder", // ok
 		"POST",
-		"/admin/del",
-		DelUser,
+		"/doctor/delete/folder",
+		DoctorDeleteFolder,
 	},
 	Route{
-		"editUser",
-		"POST",
-		"/admin/edit",
-		EditUser,
-	},
-	Route{
-		"addFolder", // ok
-		"POST",
-		"/add/folder",
-		AddFolder,
-	},
-	Route{
-		"delFolder", // ok
-		"POST",
-		"/del/folder",
-		DelFolder,
-	},
-	Route{
-		"renameFolder", // ok
+		"DoctorRenameFolder", // ok
 		"POST",
 		"/doctor/rename/folder",
-		RenameFolder,
+		DoctorRenameFolder,
 	},
 	Route{
-		"renameFile", // ok
+		"DoctorRenameFile", // ok
 		"POST",
 		"/doctor/rename/file",
-		RenameFileDoctor,
+		DoctorRenameFile,
 	},
 	Route{
-		"moveFileToFolder",
+		"DoctorChangeFileFolder",
 		"POST",
-		"/move/file/folder",
-		MoveFileToFolder,
+		"doctor/change/filefolder",
+		DoctorChangeFileFolder,
 	},
 	Route{
-		"addFileDoctor", // ok
-		"POST",
-		"/doctor/add/file",
-		AddFileDoctor,
-	},
-	Route{
-		"addFilePladema", // tanto para doctor como para pladema
+		"DoctorAddFile", // ok
 		"POST",
 		"/doctor/add/file",
-		AddFilePladema,
+		DoctorAddFile,
 	},
 	Route{
-		"delFile", // ok
+		"DoctorDeleteFile", // ok
 		"POST",
-		"/doctor/del/file",
-		DelFile,
+		"/doctor/delete/file",
+		DoctorDeleteFile,
 	},
 	Route{
-		"allFiles",
+		"DoctorGetFiles",
 		"POST",
-		"/doctor/files",
-		AllFiles,
+		"/doctor/get/files",
+		DoctorGetFiles,
 	},
 	Route{
 		"openFile", // ok
@@ -119,12 +116,21 @@ var routes = Routes{
 		"/doctor/close/file",
 		CloseFile,
 	},
+
+	//Pladema operations
+	Route{
+		"PlademaAddFile", // tanto para doctor como para pladema
+		"POST",
+		"/pladema/add/file",
+		PlademaAddFile,
+	},
 	Route{
 		"searchFiles", // operacion para usuario pladema
 		"POST",
 		"/login/admin",
 		SearchFiles,
 	},
+	// Common Operations
 	Route{
 		"logout", // ok
 		"POST",

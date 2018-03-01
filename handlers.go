@@ -70,7 +70,7 @@ func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
 }
 
 // returns a auth token as doctor user
-func LoginDoctor(w http.ResponseWriter, r *http.Request) {
+func DoctorLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var response Response
 	token, err := LoginPerson(REQUEST_DOCTOR, r)
@@ -88,7 +88,7 @@ func LoginDoctor(w http.ResponseWriter, r *http.Request) {
 }
 
 // returns a auth token as pladema user
-func LoginPladema(w http.ResponseWriter, r *http.Request) {
+func PlademaLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var response Response
 	token, err := LoginPerson(REQUEST_PLADEMA, r)
@@ -106,7 +106,7 @@ func LoginPladema(w http.ResponseWriter, r *http.Request) {
 }
 
 // returns a auth token as admin user
-func LoginAdmin(w http.ResponseWriter, r *http.Request) {
+func AdminLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	var response Response
 	token, err := LoginPerson(REQUEST_ADMIN, r)
@@ -124,7 +124,7 @@ func LoginAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 // add a new user with the data on a json
-func AddUser(w http.ResponseWriter, r *http.Request) {
+func AdminAddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	newUser, erro := ParseNewUserRequest(r)
 	var response Response
@@ -149,7 +149,7 @@ func AddUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // delete some valid user with the data on a json
-func DelUser(w http.ResponseWriter, r *http.Request) {
+func AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	delUser, err := ParseDelUserRequest(r)
 	var response Response
@@ -174,10 +174,10 @@ func DelUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // change name or email of a valid user
-func EditUser(w http.ResponseWriter, r *http.Request) {}
+func AdminEditUser(w http.ResponseWriter, r *http.Request) {}
 
 // add a file to visualize
-func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
+func DoctorAddFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	addFileRequest, errToken := ParseAddFileRequest(r)
 	var response Response
@@ -202,10 +202,10 @@ func AddFileDoctor(w http.ResponseWriter, r *http.Request) {
 }
 
 // add a file modified by some pladema engeneeir
-func AddFilePladema(w http.ResponseWriter, r *http.Request) {}
+func PlademaAddFile(w http.ResponseWriter, r *http.Request) {}
 
 // remove a file of the hashtable of opened files
-func DelFile(w http.ResponseWriter, r *http.Request) {
+func DoctorDeleteFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	delFileRequest, errToken := ParseDelFileRequest(r)
 	var response Response
@@ -231,7 +231,7 @@ func DelFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // returns all files to visualize
-func AllFiles(w http.ResponseWriter, req *http.Request) {}
+func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {}
 
 // add to the hashtable the file that is opened
 func OpenFile(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +315,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func AddFolder(w http.ResponseWriter, r *http.Request) {
+func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	folderRequest, err := ParseAddFolderRequest(r)
 	var response Response
@@ -339,7 +339,7 @@ func AddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DelFolder(w http.ResponseWriter, r *http.Request) {
+func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	delFolderRequest, err := ParseDelFolderRequest(r)
 	var response Response
@@ -363,7 +363,7 @@ func DelFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func RenameFolder(w http.ResponseWriter, r *http.Request) {
+func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	renameFolderRequest, err := ParseRenameFolderRequest(r)
 	var response Response
@@ -387,7 +387,7 @@ func RenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func RenameFileDoctor(w http.ResponseWriter, r *http.Request) {
+func DoctorRenameFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	renameFileRequest, err := ParseRenameFileDoctorRequest(r)
 	var response Response
@@ -411,4 +411,4 @@ func RenameFileDoctor(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func MoveFileToFolder(w http.ResponseWriter, r *http.Request) {}
+func DoctorChangeFileFolder(w http.ResponseWriter, r *http.Request) {}
