@@ -108,15 +108,14 @@ var routes = Routes{
 		"openFile", // ok
 		"POST",
 		"/doctor/open/file",
-		OpenFile,
+		DoctorOpenFile,
 	},
 	Route{
-		"closeFile", //
+		"closeFile", // ok
 		"POST",
 		"/doctor/close/file",
-		CloseFile,
+		DoctorCloseFile,
 	},
-
 	//Pladema operations
 	Route{
 		"PlademaAddFile", // tanto para doctor como para pladema

@@ -64,7 +64,7 @@ func getSession() *mgo.Session {
 func NewUserDAL(user NewUserRequest) error {
 	session := getSession()
 	defer session.Close()
-	if ExistsEmail(user.Email) {
+	if ExistsEmailDAL(user.Email) {
 		return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
@@ -108,7 +108,7 @@ func NewUserDAL(user NewUserRequest) error {
 	}
 }
 
-func ExistsEmail(email string) bool {
+func ExistsEmailDAL(email string) bool {
 	session := getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
@@ -120,7 +120,7 @@ func ExistsEmail(email string) bool {
 	return true
 }
 
-func GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
+func GetUserByEmailDAL(email string, cat int8) (UserDoctorDBO, error) {
 	var userToReturn UserDoctorDBO // this user is the most general of the three
 	session := getSession()
 	defer session.Close()
@@ -145,7 +145,7 @@ func GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
 	return userToReturn, nil
 }
 
-func CreateFolder(req AddFolderRequest) error {
+func DoctorAddFolderDAL(req AddFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	errCreate := os.Mkdir(BASE_PATH+email+PATH_OWN_FILES+req.Name, MODE_PERMITIONS) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
@@ -167,7 +167,7 @@ func CreateFolder(req AddFolderRequest) error {
 	return nil
 }
 
-func DeleteFolder(req DelFolderRequest) error {
+func DoctorDeleteFolderDAL(req DelFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	errDel := os.RemoveAll(BASE_PATH + "/" + email + PATH_OWN_FILES + req.Folder)
 	if errDel != nil {
@@ -185,12 +185,15 @@ func DeleteFolder(req DelFolderRequest) error {
 	return nil
 }
 
-func DeleteUser(user DelUserRequest) error {
+func AdminDeleteUserDAL(user DelUserRequest) error {
 	session := getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": user.Email}
-	userDeleted, _ := GetUserByEmail(user.Email, user.Category)
+	userDeleted, errEmail := GetUserByEmailDAL(user.Email, user.Category)
+	if errEmail != nil {
+		return errEmail
+	}
 	errDel := collection.Remove(query)
 	if errDel != nil {
 		return errDel
@@ -226,7 +229,7 @@ func DeleteUser(user DelUserRequest) error {
 	return nil
 }
 
-func RenameFolderDB(req RenameFolderRequest) error {
+func DoctorRenameFolderDAL(req RenameFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	openedFilesForUser, ptrs := OpenedFiles[req.Token]
 	found := false
@@ -265,7 +268,7 @@ func RenameFolderDB(req RenameFolderRequest) error {
 	return nil
 }
 
-func AddFileDoctorDB(req AddFileRequest) error {
+func DoctorAddFileDAL(req AddFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	session := getSession()
 	defer session.Clone()
@@ -283,7 +286,7 @@ func AddFileDoctorDB(req AddFileRequest) error {
 	return nil
 }
 
-func DelFileDoctorDB(req DelFileRequest) error {
+func DoctorDeleteFileDAL(req DelFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	// checkeo que el archivo que se quiera eliminar NO este abierto
 	for _, value := range OpenedFiles[req.Token] {
@@ -313,7 +316,7 @@ func DelFileDoctorDB(req DelFileRequest) error {
 
 type list []interface{}
 
-func RenameFileDoctorDB(req RenameFileDoctorRequest) error {
+func DoctorRenameFileDAL(req RenameFileDoctorRequest) error {
 	files, inMap := OpenedFiles[req.Token]
 	if inMap {
 		//el usuario tiene algun archivo abierto,
@@ -347,7 +350,7 @@ func RenameFileDoctorDB(req RenameFileDoctorRequest) error {
 	return nil
 }
 
-func OpenFileBL(req OpenFileRequest) (string, error) {
+func DoctorOpenFileDAL(req OpenFileRequest) (string, error) {
 	email := LogedUsers[req.Token].Email
 	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
 		return "", errors.New(ERROR_FILE_NOT_EXISTS)
@@ -376,7 +379,7 @@ func remove(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
-func CloseFileBL(req CloseFileRequest) error {
+func DoctorCloseFileDAL(req CloseFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
 		return errors.New(ERROR_FILE_NOT_EXISTS)

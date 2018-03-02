@@ -90,7 +90,7 @@ func ParseNewUserRequest(r *http.Request) (NewUserRequest, error) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_EMAIL)
 	}
 
-	if ExistsEmail(newUserRequest.Email) {
+	if ExistsEmailDAL(newUserRequest.Email) {
 		return newUserRequest, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 
@@ -196,7 +196,7 @@ func ParseDelUserRequest(r *http.Request) (DelUserRequest, error) {
 	if !govalidator.IsEmail(toReturn.Email) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_EMAIL)
 	}
-	if !ExistsEmail(toReturn.Email) {
+	if !ExistsEmailDAL(toReturn.Email) {
 		return toReturn, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 	if !(toReturn.Category == REQUEST_PLADEMA || toReturn.Category == REQUEST_DOCTOR) {

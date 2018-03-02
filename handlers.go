@@ -17,7 +17,7 @@ type Response struct {
 // Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
 func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	var key []byte
-	userDBO, err := GetUserByEmail(user.Email, cat)
+	userDBO, err := GetUserByEmailDAL(user.Email, cat)
 	if err != nil {
 		return JwtToken{Token: ""}, err
 	}
@@ -158,7 +158,7 @@ func AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 		response.Status = http.StatusBadRequest
 		response.Message = err.Error()
 	} else {
-		errDel := DeleteUser(delUser)
+		errDel := AdminDeleteUserDAL(delUser)
 		if errDel != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
@@ -186,7 +186,7 @@ func DoctorAddFile(w http.ResponseWriter, r *http.Request) {
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		err := AddFileDoctorDB(addFileRequest)
+		err := DoctorAddFileDAL(addFileRequest)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
@@ -214,7 +214,7 @@ func DoctorDeleteFile(w http.ResponseWriter, r *http.Request) {
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		err := DelFileDoctorDB(delFileRequest)
+		err := DoctorDeleteFileDAL(delFileRequest)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
@@ -234,7 +234,7 @@ func DoctorDeleteFile(w http.ResponseWriter, r *http.Request) {
 func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {}
 
 // add to the hashtable the file that is opened
-func OpenFile(w http.ResponseWriter, r *http.Request) {
+func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	openFileRequest, err := ParseOpenFileRequest(r)
 	var response Response
@@ -243,7 +243,7 @@ func OpenFile(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		folder, errCreate := OpenFileBL(openFileRequest)
+		folder, errCreate := DoctorOpenFileDAL(openFileRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -259,7 +259,7 @@ func OpenFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // remove a file of the hashtable of opened files
-func CloseFile(w http.ResponseWriter, r *http.Request) {
+func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	closeFileRequest, err := ParseCloseFileRequest(r)
 	var response Response
@@ -268,7 +268,7 @@ func CloseFile(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errCreate := CloseFileBL(closeFileRequest)
+		errCreate := DoctorCloseFileDAL(closeFileRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -324,7 +324,7 @@ func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errCreate := CreateFolder(folderRequest)
+		errCreate := DoctorAddFolderDAL(folderRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -348,7 +348,7 @@ func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errFolder := DeleteFolder(delFolderRequest)
+		errFolder := DoctorDeleteFolderDAL(delFolderRequest)
 		if errFolder != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errFolder.Error()
@@ -372,7 +372,7 @@ func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errRenamFolder := RenameFolderDB(renameFolderRequest)
+		errRenamFolder := DoctorRenameFolderDAL(renameFolderRequest)
 		if errRenamFolder != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Message = errRenamFolder.Error()
@@ -396,7 +396,7 @@ func DoctorRenameFile(w http.ResponseWriter, r *http.Request) {
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errRenamFolder := RenameFileDoctorDB(renameFileRequest)
+		errRenamFolder := DoctorRenameFileDAL(renameFileRequest)
 		if errRenamFolder != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Message = errRenamFolder.Error()
