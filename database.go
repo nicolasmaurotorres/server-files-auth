@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	s "strings"
+	Sync "sync"
+	"sync/atomic"
 
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -21,6 +23,42 @@ const (
 	MODE_PERMITIONS     = 0755
 	SEPARATOR           = string(os.PathSeparator)
 )
+
+var mu Sync.Mutex
+var initialized uint32
+var instance *database
+
+type database struct {
+	DataBaseName      string
+	CollectionUsers   string
+	BasePath          string
+	PathOwnFiles      string
+	PathModifiedFiles string
+}
+
+//GetDataBase return the only instance of the database
+func GetDatabaseInstance() *database {
+
+	if atomic.LoadUint32(&initialized) == 1 {
+		return instance
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if initialized == 0 {
+		instance = &database{
+			BasePath:          BASE_PATH,
+			CollectionUsers:   COLLECTION_USERS,
+			DataBaseName:      DATABASE_NAME,
+			PathModifiedFiles: PATH_MODIFIED_FILES,
+			PathOwnFiles:      PATH_OWN_FILES,
+		}
+		atomic.StoreUint32(&initialized, 1)
+	}
+
+	return instance
+}
 
 type Directory struct {
 	Path  string   `json:"path"`
@@ -53,7 +91,7 @@ type UserAdminDBO struct {
 	Password string
 }
 
-func getSession() *mgo.Session {
+func (db *database) getSession() *mgo.Session {
 	session, err := mgo.Dial("localhost:27017")
 	if err != nil {
 		panic(err)
@@ -61,10 +99,10 @@ func getSession() *mgo.Session {
 	return session
 }
 
-func NewUserDAL(user NewUserRequest) error {
-	session := getSession()
+func (db *database) AdminAddUser(user NewUserRequest) error {
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
-	if ExistsEmailDAL(user.Email) {
+	if GetDatabaseInstance().ExistsEmail(user.Email) {
 		return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
@@ -108,8 +146,8 @@ func NewUserDAL(user NewUserRequest) error {
 	}
 }
 
-func ExistsEmailDAL(email string) bool {
-	session := getSession()
+func (db *database) ExistsEmail(email string) bool {
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	var userResult User
@@ -120,9 +158,9 @@ func ExistsEmailDAL(email string) bool {
 	return true
 }
 
-func GetUserByEmailDAL(email string, cat int8) (UserDoctorDBO, error) {
+func (db *database) GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
 	var userToReturn UserDoctorDBO // this user is the most general of the three
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
@@ -145,7 +183,7 @@ func GetUserByEmailDAL(email string, cat int8) (UserDoctorDBO, error) {
 	return userToReturn, nil
 }
 
-func DoctorAddFolderDAL(req AddFolderRequest) error {
+func (db *database) DoctorAddFolder(req AddFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	errCreate := os.Mkdir(BASE_PATH+email+PATH_OWN_FILES+req.Name, MODE_PERMITIONS) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
@@ -155,7 +193,7 @@ func DoctorAddFolderDAL(req AddFolderRequest) error {
 	newFolder.Files = make([]string, 1)
 	newFolder.Files[0] = ""
 	newFolder.Path = email + PATH_OWN_FILES + req.Name
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": email}
@@ -167,13 +205,13 @@ func DoctorAddFolderDAL(req AddFolderRequest) error {
 	return nil
 }
 
-func DoctorDeleteFolderDAL(req DelFolderRequest) error {
+func (db *database) DoctorDeleteFolder(req DelFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	errDel := os.RemoveAll(BASE_PATH + "/" + email + PATH_OWN_FILES + req.Folder)
 	if errDel != nil {
 		return errDel
 	}
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": email}
@@ -185,12 +223,12 @@ func DoctorDeleteFolderDAL(req DelFolderRequest) error {
 	return nil
 }
 
-func AdminDeleteUserDAL(user DelUserRequest) error {
-	session := getSession()
+func (db *database) AdminDeleteUser(user DelUserRequest) error {
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := bson.M{"email": user.Email}
-	userDeleted, errEmail := GetUserByEmailDAL(user.Email, user.Category)
+	userDeleted, errEmail := GetDatabaseInstance().GetUserByEmail(user.Email, user.Category)
 	if errEmail != nil {
 		return errEmail
 	}
@@ -229,7 +267,7 @@ func AdminDeleteUserDAL(user DelUserRequest) error {
 	return nil
 }
 
-func DoctorRenameFolderDAL(req RenameFolderRequest) error {
+func (db *database) DoctorRenameFolder(req RenameFolderRequest) error {
 	email := LogedUsers[req.Token].Email
 	openedFilesForUser, ptrs := OpenedFiles[req.Token]
 	found := false
@@ -250,7 +288,7 @@ func DoctorRenameFolderDAL(req RenameFolderRequest) error {
 	if errRename != nil {
 		return errRename
 	}
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
@@ -268,9 +306,9 @@ func DoctorRenameFolderDAL(req RenameFolderRequest) error {
 	return nil
 }
 
-func DoctorAddFileDAL(req AddFileRequest) error {
+func (db *database) DoctorAddFile(req AddFileRequest) error {
 	email := LogedUsers[req.Token].Email
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Clone()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
@@ -286,7 +324,7 @@ func DoctorAddFileDAL(req AddFileRequest) error {
 	return nil
 }
 
-func DoctorDeleteFileDAL(req DelFileRequest) error {
+func (db *database) DoctorDeleteFile(req DelFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	// checkeo que el archivo que se quiera eliminar NO este abierto
 	for _, value := range OpenedFiles[req.Token] {
@@ -300,7 +338,7 @@ func DoctorDeleteFileDAL(req DelFileRequest) error {
 		//error al intentar borrarlo del sistema de archivos, ya sea por que no existe o el path es invalido
 		return errDel
 	}
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Clone()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
@@ -316,7 +354,7 @@ func DoctorDeleteFileDAL(req DelFileRequest) error {
 
 type list []interface{}
 
-func DoctorRenameFileDAL(req RenameFileDoctorRequest) error {
+func (db *database) DoctorRenameFile(req RenameFileDoctorRequest) error {
 	files, inMap := OpenedFiles[req.Token]
 	if inMap {
 		//el usuario tiene algun archivo abierto,
@@ -332,7 +370,7 @@ func DoctorRenameFileDAL(req RenameFileDoctorRequest) error {
 	if errChange != nil {
 		return errChange
 	}
-	session := getSession()
+	session := GetDatabaseInstance().getSession()
 	defer session.Clone()
 	collection := session.DB(DATABASE_NAME).C(COLLECTION_USERS)
 	query := make(map[string]string)
@@ -350,7 +388,7 @@ func DoctorRenameFileDAL(req RenameFileDoctorRequest) error {
 	return nil
 }
 
-func DoctorOpenFileDAL(req OpenFileRequest) (string, error) {
+func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
 	email := LogedUsers[req.Token].Email
 	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
 		return "", errors.New(ERROR_FILE_NOT_EXISTS)
@@ -379,7 +417,7 @@ func remove(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
-func DoctorCloseFileDAL(req CloseFileRequest) error {
+func (db *database) DoctorCloseFile(req CloseFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	if _, err := os.Stat(BASE_PATH + email + PATH_OWN_FILES + req.Folder + SEPARATOR + req.File); os.IsNotExist(err) {
 		return errors.New(ERROR_FILE_NOT_EXISTS)
