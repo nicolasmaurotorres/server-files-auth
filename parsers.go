@@ -284,7 +284,7 @@ func (p *parser) DoctorAddFileRequest(r *http.Request) (AddFileRequest, error) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
 	}
 	email := LogedUsers[toReturn.Token].Email
-	f, err := os.OpenFile(BASE_PATH+email+PATH_OWN_FILES+toReturn.Folder+SEPARATOR+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
+	f, err := os.OpenFile(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+toReturn.Folder+GetDatabaseInstance().Separator+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
 	if err != nil {
 		fmt.Println(err)
 		return toReturn, err

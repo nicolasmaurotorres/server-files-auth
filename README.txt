@@ -46,13 +46,9 @@ Referential Links:
 	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor",
 	"directorys":
 	[{
-		"path":"doctor@doctor.com/own/",
+		"path":"doctor@doctor.com",
 		"files":[""]
-	},
-	{
-		"path":"doctor@doctor.com/modified/",
-		"files":[""]
-	}
+	}	
 	]})
 	
 **** Installation of Golang ****

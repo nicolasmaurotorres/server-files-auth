@@ -15,7 +15,7 @@ type Response struct {
 }
 
 // Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
-func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
+func generateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	var key []byte
 	userDBO, err := GetDatabaseInstance().GetUserByEmail(user.Email, cat)
 	if err != nil {
@@ -62,7 +62,7 @@ func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
 	if err != nil {
 		return toReturn, err
 	}
-	token, err := GenerateToken(user, cat)
+	token, err := generateToken(user, cat)
 	if err != nil {
 		return toReturn, err
 	}
