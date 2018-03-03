@@ -8,13 +8,36 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/asaskevich/govalidator"
 )
 
-// IsValidToken returns if a token is valid or not
-func IsValidToken(tokenString string, checkTimeStamp bool) error {
+var initializedParser uint32
+var instanceParser *parser
+
+type parser struct{}
+
+func GetParserInstance() *parser {
+
+	if atomic.LoadUint32(&initializedParser) == 1 {
+		return instanceParser
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if initializedParser == 0 {
+		instanceParser = &parser{}
+		atomic.StoreUint32(&initializedParser, 1)
+	}
+
+	return instanceParser
+}
+
+// iValidToken returns if a token is valid or not
+func isValidToken(tokenString string, checkTimeStamp bool) error {
 	value, inMap := LogedUsers[tokenString]
 	if inMap {
 		if checkTimeStamp {
@@ -37,7 +60,7 @@ type UserLoginRequest struct {
 	Password string `json:"password"`
 }
 
-func ParseUserLoginRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
+func (p *parser) UserLoginRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
 	var user UserLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
@@ -72,7 +95,7 @@ type NewUserRequest struct {
 }
 
 // GetNewUserJSONRequest returns a user with valid data
-func ParseNewUserRequest(r *http.Request) (NewUserRequest, error) {
+func (p *parser) AdminAddUser(r *http.Request) (NewUserRequest, error) {
 	var newUserRequest NewUserRequest
 	err := json.NewDecoder(r.Body).Decode(&newUserRequest)
 	defer r.Body.Close()
@@ -81,7 +104,7 @@ func ParseNewUserRequest(r *http.Request) (NewUserRequest, error) {
 		//the json input is valid but we have to check the data values
 		return newUserRequest, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errorMessage := IsValidToken(newUserRequest.Token, true)
+	errorMessage := isValidToken(newUserRequest.Token, true)
 	if errorMessage != nil {
 		return newUserRequest, errorMessage
 	}
@@ -112,14 +135,14 @@ type JwtToken struct {
 	Token string `json:"token"`
 }
 
-func ParseLogoutRequest(r *http.Request) (JwtToken, error) {
+func (p *parser) LogoutRequest(r *http.Request) (JwtToken, error) {
 	var userLogoutRequest JwtToken
 	err := json.NewDecoder(r.Body).Decode(&userLogoutRequest)
 	defer r.Body.Close()
 	if err == nil {
 		return userLogoutRequest, err
 	}
-	errValid := IsValidToken(userLogoutRequest.Token, false)
+	errValid := isValidToken(userLogoutRequest.Token, false)
 	if errValid != nil {
 		return userLogoutRequest, errValid
 	}
@@ -131,14 +154,14 @@ type AddFolderRequest struct {
 	Name  string `json:"name"`
 }
 
-func ParseAddFolderRequest(r *http.Request) (AddFolderRequest, error) {
+func (p *parser) DoctorAddFolderRequest(r *http.Request) (AddFolderRequest, error) {
 	var toReturn AddFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errValid := IsValidToken(toReturn.Token, true)
+	errValid := isValidToken(toReturn.Token, true)
 	if errValid != nil {
 		return toReturn, errValid
 	}
@@ -156,14 +179,14 @@ type DelFolderRequest struct {
 	Folder string `json:"folder"`
 }
 
-func ParseDelFolderRequest(r *http.Request) (DelFolderRequest, error) {
+func (p *parser) DoctorDeleteFolderRequest(r *http.Request) (DelFolderRequest, error) {
 	var toReturn DelFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errValid := IsValidToken(toReturn.Token, true)
+	errValid := isValidToken(toReturn.Token, true)
 	if errValid != nil {
 		return toReturn, errValid
 	}
@@ -182,14 +205,14 @@ type DelUserRequest struct {
 	Category int8   `json:"category"` // 0 doctor, 1 pladema
 }
 
-func ParseDelUserRequest(r *http.Request) (DelUserRequest, error) {
+func (p *parser) AdminDeleteUserRequest(r *http.Request) (DelUserRequest, error) {
 	var toReturn DelUserRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -211,14 +234,14 @@ type RenameFolderRequest struct {
 	NewFolder string `json:"newfolder"`
 }
 
-func ParseRenameFolderRequest(r *http.Request) (RenameFolderRequest, error) {
+func (p *parser) DoctorRenameFolderRequest(r *http.Request) (RenameFolderRequest, error) {
 	var toReturn RenameFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -237,7 +260,7 @@ type AddFileRequest struct {
 	File   string
 }
 
-func ParseAddFileRequest(r *http.Request) (AddFileRequest, error) {
+func (p *parser) DoctorAddFileRequest(r *http.Request) (AddFileRequest, error) {
 	var toReturn AddFileRequest
 	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
 	file, handler, err := r.FormFile("file") // obtengo el archivo del request
@@ -250,7 +273,7 @@ func ParseAddFileRequest(r *http.Request) (AddFileRequest, error) {
 	toReturn.Folder = r.FormValue("folder")
 	toReturn.File = handler.Filename
 
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -281,14 +304,14 @@ type DelFileRequest struct {
 	File   string `json:"file"`
 }
 
-func ParseDelFileRequest(r *http.Request) (DelFileRequest, error) {
+func (p *parser) DoctorDeleteFileRequest(r *http.Request) (DelFileRequest, error) {
 	var toReturn DelFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -309,14 +332,14 @@ type RenameFileDoctorRequest struct {
 	Folder  string `json:"folder"`
 }
 
-func ParseRenameFileDoctorRequest(r *http.Request) (RenameFileDoctorRequest, error) {
+func (p *parser) DoctorRenameFileRequest(r *http.Request) (RenameFileDoctorRequest, error) {
 	var toReturn RenameFileDoctorRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -335,14 +358,14 @@ type OpenFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func ParseOpenFileRequest(r *http.Request) (OpenFileRequest, error) {
+func (p *parser) DoctorOpenFileRequest(r *http.Request) (OpenFileRequest, error) {
 	var toReturn OpenFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}
@@ -361,14 +384,14 @@ type CloseFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func ParseCloseFileRequest(r *http.Request) (CloseFileRequest, error) {
+func (p *parser) DoctorCloseFileRequest(r *http.Request) (CloseFileRequest, error) {
 	var toReturn CloseFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
-	errToken := IsValidToken(toReturn.Token, true)
+	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
 	}

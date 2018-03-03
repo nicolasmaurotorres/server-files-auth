@@ -57,7 +57,7 @@ func GenerateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 }
 
 func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
-	user, err := ParseUserLoginRequest(r, cat)
+	user, err := GetParserInstance().UserLoginRequest(r, cat)
 	var toReturn JwtToken
 	if err != nil {
 		return toReturn, err
@@ -126,7 +126,7 @@ func AdminLogin(w http.ResponseWriter, r *http.Request) {
 // add a new user with the data on a json
 func AdminAddUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	newUser, erro := ParseNewUserRequest(r)
+	newUser, erro := GetParserInstance().AdminAddUser(r)
 	var response Response
 	if erro == nil {
 		err := GetDatabaseInstance().AdminAddUser(newUser)
@@ -151,7 +151,7 @@ func AdminAddUser(w http.ResponseWriter, r *http.Request) {
 // delete some valid user with the data on a json
 func AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delUser, err := ParseDelUserRequest(r)
+	delUser, err := GetParserInstance().AdminDeleteUserRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -179,7 +179,7 @@ func AdminEditUser(w http.ResponseWriter, r *http.Request) {}
 // add a file to visualize
 func DoctorAddFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	addFileRequest, errToken := ParseAddFileRequest(r)
+	addFileRequest, errToken := GetParserInstance().DoctorAddFileRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -207,7 +207,7 @@ func PlademaAddFile(w http.ResponseWriter, r *http.Request) {}
 // remove a file of the hashtable of opened files
 func DoctorDeleteFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delFileRequest, errToken := ParseDelFileRequest(r)
+	delFileRequest, errToken := GetParserInstance().DoctorDeleteFileRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -236,7 +236,7 @@ func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {}
 // add to the hashtable the file that is opened
 func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	openFileRequest, err := ParseOpenFileRequest(r)
+	openFileRequest, err := GetParserInstance().DoctorOpenFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -261,7 +261,7 @@ func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {
 // remove a file of the hashtable of opened files
 func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	closeFileRequest, err := ParseCloseFileRequest(r)
+	closeFileRequest, err := GetParserInstance().DoctorCloseFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -288,7 +288,7 @@ func SearchFiles(w http.ResponseWriter, r *http.Request) {}
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	token, err := ParseLogoutRequest(r)
+	token, err := GetParserInstance().LogoutRequest(r)
 	var response Response
 	if err != nil {
 		// hay un error
@@ -317,7 +317,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	folderRequest, err := ParseAddFolderRequest(r)
+	folderRequest, err := GetParserInstance().DoctorAddFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -341,7 +341,7 @@ func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
 
 func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delFolderRequest, err := ParseDelFolderRequest(r)
+	delFolderRequest, err := GetParserInstance().DoctorDeleteFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -365,7 +365,7 @@ func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
 
 func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFolderRequest, err := ParseRenameFolderRequest(r)
+	renameFolderRequest, err := GetParserInstance().DoctorRenameFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -389,7 +389,7 @@ func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
 
 func DoctorRenameFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFileRequest, err := ParseRenameFileDoctorRequest(r)
+	renameFileRequest, err := GetParserInstance().DoctorRenameFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
