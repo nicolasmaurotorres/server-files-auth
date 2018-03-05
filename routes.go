@@ -21,7 +21,7 @@ var routes = Routes{
 	Route{
 		"DoctorLogin", // ok
 		"POST",
-		"/doctor/login/",
+		"/doctor/login",
 		DoctorLogin,
 	},
 	Route{
@@ -126,7 +126,7 @@ var routes = Routes{
 	Route{
 		"searchFiles", // operacion para usuario pladema
 		"POST",
-		"/login/admin",
+		"/pladema/search/files",
 		SearchFiles,
 	},
 	// Common Operations

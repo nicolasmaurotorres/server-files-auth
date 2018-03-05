@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -15,11 +16,21 @@ type Response struct {
 }
 
 // Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
-func generateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
+func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	var key []byte
-	userDBO, err := GetDatabaseInstance().GetUserByEmail(user.Email, cat)
+	var toReturn JwtToken
+	userDBO, err := GetDatabaseInstance().GetUserByEmail(user.Email)
 	if err != nil {
 		return JwtToken{Token: ""}, err
+	}
+	// control de pass y user que sean iguales
+	// TODO: hacer un hashing de la pass al enviarla desde el cleinte y al dar de alta en el servidor
+	fmt.Println(cat)
+	fmt.Println(userDBO.Category)
+	fmt.Println(userDBO.Email)
+	fmt.Println(userDBO.Password)
+	if user.Password != userDBO.Password || user.Email != userDBO.Email || userDBO.Category != cat {
+		return toReturn, errors.New(ERROR_SERVER)
 	}
 	switch cat {
 	case REQUEST_DOCTOR:
@@ -32,12 +43,7 @@ func generateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 		key = SigningKeyAdmin
 		break
 	default:
-		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
-	}
-	// control de pass y user que sean iguales
-	// TODO: hacer un hashing de la pass al enviarla desde el cleinte y al dar de alta en el servidor
-	if user.Password != userDBO.Password || user.Email != userDBO.Email {
-		return JwtToken{Token: ""}, errors.New(ERROR_SERVER)
+		return toReturn, errors.New(ERROR_SERVER)
 	}
 	//genero el token del usuario, lo guardo en la hash, y lo devuelvo
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -48,15 +54,14 @@ func generateToken(user UserLoginRequest, cat int8) (JwtToken, error) {
 	//controlo que el usuario NO este logueado previamente
 	_, inMap := LogedUsers[tokenString]
 	if inMap {
-		return JwtToken{Token: ""}, errors.New(ERROR_USER_ALREADY_LOGUED)
+		return toReturn, errors.New(ERROR_USER_ALREADY_LOGUED)
 	}
-	var toReturn JwtToken
 	toReturn.Token = tokenString
 	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email}
 	return toReturn, nil
 }
 
-func LoginPerson(cat int8, r *http.Request) (JwtToken, error) {
+func LoginPerson(cat int, r *http.Request) (JwtToken, error) {
 	user, err := GetParserInstance().UserLoginRequest(r, cat)
 	var toReturn JwtToken
 	if err != nil {
@@ -83,7 +88,7 @@ func DoctorLogin(w http.ResponseWriter, r *http.Request) {
 		response.Message = token.Token
 		response.Status = http.StatusOK
 	}
-	tokenJSON, _ := json.Marshal(token)
+	tokenJSON, _ := json.Marshal(response)
 	w.Write(tokenJSON)
 }
 
@@ -101,7 +106,7 @@ func PlademaLogin(w http.ResponseWriter, r *http.Request) {
 		response.Message = token.Token
 		response.Status = http.StatusOK
 	}
-	tokenJSON, _ := json.Marshal(token)
+	tokenJSON, _ := json.Marshal(response)
 	w.Write(tokenJSON)
 }
 
@@ -119,7 +124,7 @@ func AdminLogin(w http.ResponseWriter, r *http.Request) {
 		response.Message = token.Token
 		response.Status = http.StatusOK
 	}
-	tokenJSON, _ := json.Marshal(token)
+	tokenJSON, _ := json.Marshal(response)
 	w.Write(tokenJSON)
 }
 
@@ -174,19 +179,41 @@ func AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // change name or email of a valid user
-func AdminEditUser(w http.ResponseWriter, r *http.Request) {}
-
-// add a file to visualize
-func DoctorAddFile(w http.ResponseWriter, r *http.Request) {
+func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	addFileRequest, errToken := GetParserInstance().DoctorAddFileRequest(r)
+	addFileRequest, errToken := GetParserInstance().AdminEditUserRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		err := GetDatabaseInstance().DoctorAddFile(addFileRequest)
+		err := GetDatabaseInstance().AdminEditUser(addFileRequest)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Status = http.StatusBadRequest
+			response.Message = err.Error()
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Status = http.StatusOK
+			response.Message = FILE_ADD_SUCCESS
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
+
+// add a file to visualize
+func DoctorAddFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	errToken := GetParserInstance().DoctorAddFileRequest(r)
+	var response Response
+	if errToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Status = http.StatusBadRequest
+		response.Message = errToken.Error()
+	} else {
+		err := GetDatabaseInstance().DoctorAddFile(r)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
@@ -310,6 +337,8 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 			response.Message = ERROR_NOT_VALID_TOKEN
 			response.Status = http.StatusForbidden
 		}
+		// elimino todos los archivos abiertos
+		delete(OpenedFiles, token.Token)
 	}
 	responseJSON, _ := json.Marshal(response)
 	w.Write(responseJSON)

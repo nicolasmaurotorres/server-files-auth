@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	REQUEST_DOCTOR  int8 = 0
-	REQUEST_PLADEMA int8 = 1
-	REQUEST_ADMIN   int8 = 2
+	REQUEST_DOCTOR  int = 0
+	REQUEST_PLADEMA int = 1
+	REQUEST_ADMIN   int = 2
 
 	VALID_DATA_ENTRY = "valid_data_entry"
 
@@ -55,6 +55,8 @@ const (
 	ERROR_FILE_NOT_EXISTS         = "the file does not exists"
 	ERROR_FILE_NOT_OPENED         = "the file is not opened"
 	ERROR_BAD_FORMED_EMAIL_EMPTY  = "the email is empty"
+	ERROR_EMAIL_NOT_EXISTS        = "the email does not exists"
+	ERROR_INSERT_NEW_USER         = "fail when trying to create new user"
 )
 
 type Pair struct {

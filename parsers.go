@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
-	"os"
 	"sync/atomic"
 	"time"
 
@@ -60,7 +58,7 @@ type UserLoginRequest struct {
 	Password string `json:"password"`
 }
 
-func (p *parser) UserLoginRequest(r *http.Request, cat int8) (UserLoginRequest, error) {
+func (p *parser) UserLoginRequest(r *http.Request, cat int) (UserLoginRequest, error) {
 	var user UserLoginRequest
 	err := json.NewDecoder(r.Body).Decode(&user)
 	defer r.Body.Close()
@@ -88,10 +86,9 @@ func (p *parser) UserLoginRequest(r *http.Request, cat int8) (UserLoginRequest, 
 
 type NewUserRequest struct {
 	Token    string `json:"token"`
-	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Category int8   `json:"category"` // 0 doctor, 1 pladema
+	Category int    `json:"category"` // 0 doctor, 1 pladema
 }
 
 // GetNewUserJSONRequest returns a user with valid data
@@ -108,23 +105,15 @@ func (p *parser) AdminAddUser(r *http.Request) (NewUserRequest, error) {
 	if errorMessage != nil {
 		return newUserRequest, errorMessage
 	}
-
 	if !govalidator.IsEmail(newUserRequest.Email) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_EMAIL)
 	}
-
 	if GetDatabaseInstance().ExistsEmail(newUserRequest.Email) {
 		return newUserRequest, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
-
 	if govalidator.IsNull(newUserRequest.Password) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_PASSWORD)
 	}
-
-	if govalidator.IsNull(newUserRequest.Name) {
-		return newUserRequest, errors.New(ERROR_BAD_FORMED_NAME)
-	}
-
 	if !(newUserRequest.Category == REQUEST_DOCTOR || newUserRequest.Category == REQUEST_PLADEMA) {
 		return newUserRequest, errors.New(ERROR_BAD_CATEGORY)
 	}
@@ -200,9 +189,8 @@ func (p *parser) DoctorDeleteFolderRequest(r *http.Request) (DelFolderRequest, e
 }
 
 type DelUserRequest struct {
-	Token    string `json:"token"`
-	Email    string `json:"email"`
-	Category int8   `json:"category"` // 0 doctor, 1 pladema
+	Token string `json:"token"`
+	Email string `json:"email"`
 }
 
 func (p *parser) AdminDeleteUserRequest(r *http.Request) (DelUserRequest, error) {
@@ -221,9 +209,6 @@ func (p *parser) AdminDeleteUserRequest(r *http.Request) (DelUserRequest, error)
 	}
 	if !GetDatabaseInstance().ExistsEmail(toReturn.Email) {
 		return toReturn, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
-	}
-	if !(toReturn.Category == REQUEST_PLADEMA || toReturn.Category == REQUEST_DOCTOR) {
-		return toReturn, errors.New(ERROR_BAD_CATEGORY)
 	}
 	return toReturn, nil
 }
@@ -260,42 +245,18 @@ type AddFileRequest struct {
 	File   string
 }
 
-func (p *parser) DoctorAddFileRequest(r *http.Request) (AddFileRequest, error) {
+func (p *parser) DoctorAddFileRequest(r *http.Request) error {
 	var toReturn AddFileRequest
-	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
-	file, handler, err := r.FormFile("file") // obtengo el archivo del request
-	if err != nil {
-		fmt.Println(err)
-		return toReturn, err
-	}
-	defer file.Close()
 	toReturn.Token = r.FormValue("token")
 	toReturn.Folder = r.FormValue("folder")
-	toReturn.File = handler.Filename
-
 	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
-		return toReturn, errToken
+		return errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+		return errors.New(ERROR_BAD_FORMED_FOLDER)
 	}
-	if govalidator.IsNull(toReturn.File) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
-	}
-	email := LogedUsers[toReturn.Token].Email
-	f, err := os.OpenFile(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+toReturn.Folder+GetDatabaseInstance().Separator+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
-	if err != nil {
-		fmt.Println(err)
-		return toReturn, err
-	}
-	defer f.Close()
-	_, errCopy := io.Copy(f, file) //copio lo del file del request al nuevo lugar
-	if errCopy != nil {
-		fmt.Println("error al copiar")
-		return toReturn, errCopy
-	}
-	return toReturn, nil
+	return nil
 }
 
 type DelFileRequest struct {
@@ -400,6 +361,39 @@ func (p *parser) DoctorCloseFileRequest(r *http.Request) (CloseFileRequest, erro
 	}
 	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	return toReturn, nil
+}
+
+type EditUserRequest struct {
+	Token       string `json:"token"`
+	OldPassword string `json:"oldpassword"`
+	OldEmail    string `json:"oldemail"`
+	NewName     string `json:"newname"`
+	NewPassword string `json:"newpassword"`
+	NewEmail    string `json:"newemail"`
+}
+
+func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) {
+	var toReturn EditUserRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	defer r.Body.Close()
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.OldPassword) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_PASSWORD)
+	}
+	_, errOldUser := GetDatabaseInstance().GetUserByEmail(toReturn.OldEmail)
+	if errOldUser != nil {
+		return toReturn, errOldUser
+	}
+	if toReturn.NewEmail != "" && !govalidator.IsEmail(toReturn.NewEmail) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_EMAIL)
 	}
 	return toReturn, nil
 }

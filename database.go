@@ -3,9 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
-	"strconv"
 	s "strings"
 	Sync "sync"
 	"sync/atomic"
@@ -26,7 +27,7 @@ type database struct {
 	ModePermitions  os.FileMode
 }
 
-//GetDataBase return the only instance of the database
+//GetDatabaseInstance return the only instance of the database
 func GetDatabaseInstance() *database {
 
 	if atomic.LoadUint32(&initialized) == 1 {
@@ -50,33 +51,14 @@ func GetDatabaseInstance() *database {
 	return instance
 }
 
-type Directory struct {
-	Path  string   `json:"path"`
-	Files []string `json:"files"`
-}
-
 type User struct {
 	Name     string
 	Email    string
 	Password string
 }
 
-type UserDoctorDBO struct {
-	Category   int8
-	Name       string
-	Email      string
-	Password   string
-	Directorys []Directory
-}
-
-type UserPlademaDBO struct {
-	Category int8
-	Name     string
-	Email    string
-	Password string
-}
-
-type UserAdminDBO struct {
+type UserDBO struct {
+	Category int
 	Email    string
 	Password string
 }
@@ -96,39 +78,25 @@ func (db *database) AdminAddUser(user NewUserRequest) error {
 		return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 	}
 	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
+	var userDBO UserDBO
+	userDBO.Email = user.Email
+	userDBO.Password = user.Password
 	switch user.Category {
 	case REQUEST_DOCTOR:
-		var userDoctor UserDoctorDBO
-		userDoctor.Name = user.Name
-		userDoctor.Email = user.Email
-		userDoctor.Password = user.Password
-		userDoctor.Category = REQUEST_DOCTOR
-		os.Mkdir(GetDatabaseInstance().BasePath+userDoctor.Email, GetDatabaseInstance().ModePermitions)
-		userDoctor.Directorys = make([]Directory, 1)
-		userDoctor.Directorys[0].Files = make([]string, 1)
-		userDoctor.Directorys[0].Files[0] = ""
-		userDoctor.Directorys[0].Path = userDoctor.Email
-		err := collection.Insert(userDoctor)
-		if err != nil {
-			return errors.New(ERROR_INSERT_NEW_DOCTOR)
-		}
-		return nil
+		userDBO.Category = REQUEST_DOCTOR
+		os.Mkdir(GetDatabaseInstance().BasePath+userDBO.Email, GetDatabaseInstance().ModePermitions)
+		break
 	case REQUEST_PLADEMA:
-		var userPladema UserPlademaDBO
-		userPladema.Email = user.Email
-		userPladema.Name = user.Name
-		userPladema.Password = user.Password
-		userPladema.Category = REQUEST_PLADEMA
-		err := collection.Insert(userPladema)
-		if err != nil {
-			log.Fatal(ERROR_INSERT_NEW_PLADEMA)
-			return errors.New(ERROR_INSERT_NEW_PLADEMA)
-		}
-		return nil
+		userDBO.Category = REQUEST_PLADEMA
 	default:
 		log.Fatal(ERROR_SERVER)
 		return errors.New(ERROR_SERVER)
 	}
+	err := collection.Insert(userDBO)
+	if err != nil {
+		return errors.New(ERROR_INSERT_NEW_USER)
+	}
+	return nil
 }
 
 func (db *database) ExistsEmail(email string) bool {
@@ -143,27 +111,16 @@ func (db *database) ExistsEmail(email string) bool {
 	return true
 }
 
-func (db *database) GetUserByEmail(email string, cat int8) (UserDoctorDBO, error) {
-	var userToReturn UserDoctorDBO // this user is the most general of the three
+func (db *database) GetUserByEmail(email string) (UserDBO, error) {
+	var userToReturn UserDBO // this user is the most general of the three
 	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
 	query := make(map[string]string)
 	query["email"] = email
-	switch cat {
-	case REQUEST_DOCTOR:
-		query["category"] = strconv.Itoa(int(REQUEST_DOCTOR))
-		break
-	case REQUEST_PLADEMA:
-		query["category"] = strconv.Itoa(int(REQUEST_PLADEMA))
-		break
-	case REQUEST_ADMIN:
-		query["category"] = strconv.Itoa(int(REQUEST_ADMIN))
-		break
-	}
 	err := collection.Find(query).One(&userToReturn)
 	if err != nil {
-		return UserDoctorDBO{Name: "", Email: ""}, errors.New(ERROR_NOT_EXISTING_USER)
+		return userToReturn, errors.New(ERROR_NOT_EXISTING_USER)
 	}
 	return userToReturn, nil
 }
@@ -173,19 +130,6 @@ func (db *database) DoctorAddFolder(req AddFolderRequest) error {
 	errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Name, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
 		return errCreate // no se pudo crear la carpeta
-	}
-	var newFolder Directory
-	newFolder.Files = make([]string, 1)
-	newFolder.Files[0] = ""
-	newFolder.Path = email + GetDatabaseInstance().Separator + req.Name
-	session := GetDatabaseInstance().getSession()
-	defer session.Close()
-	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	query := bson.M{"email": email}
-	update := bson.M{"$push": bson.M{"directorys": newFolder}}
-	errUpdate := collection.Update(query, update) // actualizo al usuario
-	if errUpdate != nil {
-		return errUpdate // error en la actualizacion
 	}
 	return nil
 }
@@ -204,22 +148,14 @@ func folderContainOpenFile(token string, path string) bool {
 }
 
 func (db *database) DoctorDeleteFolder(req DelFolderRequest) error {
+	//TODO: ver como se guuardar en el OpenedFiles
 	if folderContainOpenFile(req.Token, req.Folder) {
 		return errors.New(ERROR_FOLDER_WITH_OPEN_FILE)
 	}
 	email := LogedUsers[req.Token].Email
-	errDel := os.RemoveAll(GetDatabaseInstance().BasePath + GetDatabaseInstance().Separator + email + GetDatabaseInstance().Separator + req.Folder)
+	errDel := os.RemoveAll(GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder)
 	if errDel != nil {
 		return errDel
-	}
-	session := GetDatabaseInstance().getSession()
-	defer session.Close()
-	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	query := bson.M{"email": email}
-	update := bson.M{"$pull": bson.M{"directorys": bson.M{"path": email + GetDatabaseInstance().Separator + req.Folder}}}
-	errUpdate := collection.Update(query, update)
-	if errUpdate != nil {
-		return errUpdate
 	}
 	return nil
 }
@@ -229,7 +165,7 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 	defer session.Close()
 	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
 	query := bson.M{"email": user.Email}
-	userDeleted, errEmail := GetDatabaseInstance().GetUserByEmail(user.Email, user.Category)
+	userDeleted, errEmail := GetDatabaseInstance().GetUserByEmail(user.Email)
 	if errEmail != nil {
 		return errEmail
 	}
@@ -252,8 +188,8 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 		delete(LogedUsers, tokenDeletedUser) // delete if user loged
 	}
 
-	if user.Category == REQUEST_DOCTOR {
-		errDelFolder := os.RemoveAll(GetDatabaseInstance().BasePath + GetDatabaseInstance().Separator + user.Email) //error deleting the folder
+	if userDeleted.Category == REQUEST_DOCTOR {
+		errDelFolder := os.RemoveAll(GetDatabaseInstance().BasePath + user.Email) //error deleting the folder
 		// delete the opened files
 		jwtToken, _ := generateToken(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_DOCTOR)
 		files := OpenedFiles[jwtToken.Token]
@@ -280,6 +216,7 @@ func (db *database) DoctorRenameFolder(req RenameFolderRequest) error {
 	found := false
 	if ptrs {
 		//significa que tiene archivos abiertos, tengo que verificar si la carpeta que quiere renombrar NO ESTE esta aqui
+		//TODO: verificar como guardo en openFile operation
 		for _, val := range openedFilesForUser {
 			if s.Contains(val, req.OldFolder) {
 				found = true
@@ -287,6 +224,7 @@ func (db *database) DoctorRenameFolder(req RenameFolderRequest) error {
 			}
 		}
 	}
+
 	if found {
 		return errors.New(ERROR_FOLDER_WITH_OPEN_FILE)
 	}
@@ -295,38 +233,30 @@ func (db *database) DoctorRenameFolder(req RenameFolderRequest) error {
 	if errRename != nil {
 		return errRename
 	}
-	session := GetDatabaseInstance().getSession()
-	defer session.Close()
-	collection := session.DB(GetDatabaseInstance().BasePath).C(GetDatabaseInstance().CollectionUsers)
-	query := make(map[string]string)
-	query["email"] = email
-	query["directorys.path"] = email + GetDatabaseInstance().Separator + req.OldFolder
-	update := bson.M{"$set": bson.M{"directorys.$.path": email + GetDatabaseInstance().Separator + req.NewFolder}}
-	// hacer el update en la base de datos, el nombre repetido ya se ataja en el os.Rename dado que una carpeta no puede contener 2 carpetas con el mismo nombre, me aseguro
-	// de que ese error no va a pasar en la DB
-	errUpdate := collection.Update(query, update)
-	if errUpdate != nil {
-		os.Rename(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.NewFolder, GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.OldFolder) // vuelvo atras con el renombre
-		return errUpdate
-	}
-
 	return nil
 }
 
-func (db *database) DoctorAddFile(req AddFileRequest) error {
-	email := LogedUsers[req.Token].Email
-	session := GetDatabaseInstance().getSession()
-	defer session.Clone()
-	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	query := make(map[string]string)
-	query["email"] = email
-	query["directorys.path"] = email + GetDatabaseInstance().Separator + req.Folder // carpeta a agregar el archivo
-	update := bson.M{"$addToSet": bson.M{"directorys.$.files": req.File}}
-	errUpdate := collection.Update(query, update)
-	if errUpdate != nil {
-		fmt.Println(errUpdate)
-		os.Remove(GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File) //elimino el archivo que guarde
-		return errUpdate
+func (db *database) DoctorAddFile(r *http.Request) error {
+	var toReturn AddFileRequest
+	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
+	file, handler, err := r.FormFile("file") // obtengo el archivo del request
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	toReturn.Token = r.FormValue("token")
+	toReturn.Folder = r.FormValue("folder")
+	toReturn.File = handler.Filename
+	email := LogedUsers[toReturn.Token].Email
+	f, errOpen := os.OpenFile(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+toReturn.Folder+GetDatabaseInstance().Separator+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
+	if errOpen != nil {
+		return errOpen
+	}
+	defer f.Close()
+	_, errCopy := io.Copy(f, file) //copio lo del file del request al nuevo lugar
+	if errCopy != nil {
+
+		return errCopy
 	}
 	return nil
 }
@@ -344,17 +274,6 @@ func (db *database) DoctorDeleteFile(req DelFileRequest) error {
 	if errDel != nil {
 		//error al intentar borrarlo del sistema de archivos, ya sea por que no existe o el path es invalido
 		return errDel
-	}
-	session := GetDatabaseInstance().getSession()
-	defer session.Clone()
-	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	query := make(map[string]string)
-	query["email"] = email
-	query["directorys.path"] = email + GetDatabaseInstance().Separator + req.Folder // carpeta a agregar el archivo
-	update := bson.M{"$pull": bson.M{"directorys.$.files": req.File}}
-	errUpdate := collection.Update(query, update)
-	if errUpdate != nil {
-		return errUpdate
 	}
 	return nil
 }
@@ -377,21 +296,6 @@ func (db *database) DoctorRenameFile(req RenameFileDoctorRequest) error {
 	if errChange != nil {
 		return errChange
 	}
-	session := GetDatabaseInstance().getSession()
-	defer session.Clone()
-	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	query := make(map[string]string)
-	query["email"] = email
-	query["directorys.path"] = email + GetDatabaseInstance().Separator + req.Folder
-	query["directorys.files"] = req.FileOld
-	update := bson.M{"$set": bson.M{"directorys.$[].files.$[selectedFile]": req.FileNew}}
-	filters := list{bson.M{"selectedFile": req.FileOld}}
-	errUpdate := collection.UpdateArrayFilters(query, update, filters)
-	if errUpdate != nil {
-		//vuelvo atras con el nombre que tenia antes el archivo
-		os.Rename(GetDatabaseInstance().DataBaseName+email+GetDatabaseInstance().Separator+req.Folder+GetDatabaseInstance().Separator+req.FileNew, GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Folder+GetDatabaseInstance().Separator+req.FileOld)
-		return errUpdate
-	}
 	return nil
 }
 
@@ -409,11 +313,11 @@ func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
 				return "", errors.New(ERROR_FILE_ALREADY_OPENED)
 			}
 		}
-		// ninguno de los archivos abierto coincide, lo agrego
 	}
-	// no tiene archivos abiertos, creo un nuevo arreglo
-	OpenedFiles[req.Token] = append(OpenedFiles[req.Token], email+GetDatabaseInstance().Separator+req.Folder+GetDatabaseInstance().Separator+req.File)
-	return GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File, nil
+	// no tiene archivos abiertos o no coincide, creo un nuevo arreglo
+	pathFile := email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File
+	OpenedFiles[req.Token] = append(OpenedFiles[req.Token], pathFile)
+	return pathFile, nil
 }
 
 //elimina un objeto en una posicion del arreglo
@@ -441,4 +345,59 @@ func (db *database) DoctorCloseFile(req CloseFileRequest) error {
 		}
 	}
 	return errors.New(ERROR_FILE_NOT_OPENED)
+}
+
+func (db *database) AdminEditUser(req EditUserRequest) error {
+	session := GetDatabaseInstance().getSession()
+	defer session.Close()
+	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
+	if req.NewEmail != "" && req.NewEmail != req.OldEmail {
+		// compruebo si el nuevo email NO existe en la DB
+		if GetDatabaseInstance().ExistsEmail(req.NewEmail) {
+			return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
+		}
+		//actualizo el email en la db
+		query := make(map[string]string)
+		query["email"] = req.OldEmail
+		modified := bson.M{"$set": bson.M{"email": req.NewEmail}}
+		errUpdate := collection.Update(query, modified)
+		if errUpdate != nil {
+			return errUpdate
+		}
+		//renombro la carpeta
+		os.Rename(GetDatabaseInstance().BasePath+req.OldEmail, GetDatabaseInstance().BasePath+req.NewEmail)
+		cleanDataUserEdited(req.OldEmail)
+	}
+	if req.NewPassword != "" && req.OldPassword != req.NewPassword {
+		query := make(map[string]string)
+		if req.NewEmail != req.OldEmail {
+			query["email"] = req.NewEmail
+		} else {
+			query["email"] = req.OldEmail
+		}
+		update := bson.M{"$set": bson.M{"password": req.NewPassword}}
+		errUpdate := collection.Update(query, update)
+		if errUpdate != nil {
+			return errUpdate
+		}
+		cleanDataUserEdited(req.OldEmail)
+	}
+	return nil
+}
+
+func cleanDataUserEdited(email string) {
+	user, _ := GetDatabaseInstance().GetUserByEmail(email)
+	oldToken, _ := generateToken(UserLoginRequest{Email: user.Email, Password: user.Password}, user.Category)
+	//lo deslogueo si esta logueado
+	for key := range LogedUsers {
+		if key == oldToken.Token {
+			delete(LogedUsers, key)
+			break
+		}
+	}
+	// borro todos los archivos abiertos si es que tiene
+	_, inMap := OpenedFiles[oldToken.Token]
+	if inMap {
+		delete(OpenedFiles, oldToken.Token)
+	}
 }

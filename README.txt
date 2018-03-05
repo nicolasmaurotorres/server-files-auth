@@ -39,17 +39,10 @@ Referential Links:
 	* mongo
 	* use tesis
 	* db.createCollection("users")
-	* db.users.insert({"category":"2","email":"admin","password":"admin"})
-
 - defaults users only for testing
-	* db.users.insert({"category":"1","email":"pladema@pladema.com","password":"pladema","name":"pladema"})
-	* db.users.insert({"category":"0","email":"doctor@doctor.com","password":"doctor","name":"doctor",
-	"directorys":
-	[{
-		"path":"doctor@doctor.com",
-		"files":[""]
-	}	
-	]})
+	* db.users.insert({"category":2,"email":"admin","password":"admin"})
+	* db.users.insert({"category":1,"email":"pladema@pladema.com","password":"pladema"})
+	* db.users.insert({"category":0,"email":"doctor@doctor.com","password":"doctor"})
 	
 **** Installation of Golang ****
 - sudo apt-get update
