@@ -127,7 +127,7 @@ func (db *database) GetUserByEmail(email string) (UserDBO, error) {
 
 func (db *database) DoctorAddFolder(req AddFolderRequest) error {
 	email := LogedUsers[req.Token].Email
-	errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Name, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
+	errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Folder, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
 		return errCreate // no se pudo crear la carpeta
 	}
@@ -153,7 +153,11 @@ func (db *database) DoctorDeleteFolder(req DelFolderRequest) error {
 		return errors.New(ERROR_FOLDER_WITH_OPEN_FILE)
 	}
 	email := LogedUsers[req.Token].Email
-	errDel := os.RemoveAll(GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder)
+	toDelete := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder
+	if _, err := os.Stat(toDelete); os.IsNotExist(err) {
+		return errors.New(ERROR_FOLDER_NOT_EXISTS)
+	}
+	errDel := os.RemoveAll(toDelete)
 	if errDel != nil {
 		return errDel
 	}
@@ -248,7 +252,11 @@ func (db *database) DoctorAddFile(r *http.Request) error {
 	toReturn.Folder = r.FormValue("folder")
 	toReturn.File = handler.Filename
 	email := LogedUsers[toReturn.Token].Email
-	f, errOpen := os.OpenFile(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+toReturn.Folder+GetDatabaseInstance().Separator+handler.Filename, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
+	pathNewFile := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + toReturn.Folder + GetDatabaseInstance().Separator + handler.Filename
+	if _, err := os.Stat(pathNewFile); err == nil {
+		return errors.New(ERROR_FILE_ALREADY_EXISTS)
+	}
+	f, errOpen := os.OpenFile(pathNewFile, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
 	if errOpen != nil {
 		return errOpen
 	}
@@ -278,21 +286,24 @@ func (db *database) DoctorDeleteFile(req DelFileRequest) error {
 	return nil
 }
 
-type list []interface{}
-
 func (db *database) DoctorRenameFile(req RenameFileDoctorRequest) error {
 	files, inMap := OpenedFiles[req.Token]
 	if inMap {
 		//el usuario tiene algun archivo abierto,
 		for _, value := range files {
-			if value == req.FileOld {
-				return errors.New(ERROR_FILE_OPENED) // el archivo que quiere cambiarle el nombre, esta abierto por algun proceso, no puede cambiarle el nombre
+			if s.Contains(value, req.FileOld) {
+				return errors.New(ERROR_FILE_OPENED_RENAMED) // el archivo que quiere cambiarle el nombre, esta abierto por algun proceso, no puede cambiarle el nombre
 			}
 		}
 		return errors.New(ERROR_SERVER) // no deberia pasar NUNCA, dado que si se encuentra en el mapa, tiene que haber algun archivo abierto
 	}
 	email := LogedUsers[req.Token].Email
-	errChange := os.Rename(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Folder+GetDatabaseInstance().Separator+req.FileOld, GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Folder+GetDatabaseInstance().Separator+req.FileNew)
+	newFilePath := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.FileNew
+	oldFilePath := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.FileOld
+	if _, err := os.Stat(newFilePath); err == nil {
+		return errors.New(ERROR_FILE_ALREADY_EXISTS)
+	}
+	errChange := os.Rename(oldFilePath, newFilePath)
 	if errChange != nil {
 		return errChange
 	}
@@ -301,7 +312,13 @@ func (db *database) DoctorRenameFile(req RenameFileDoctorRequest) error {
 
 func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
 	email := LogedUsers[req.Token].Email
-	if _, err := os.Stat(GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File); os.IsNotExist(err) {
+	pathFile := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator
+	if req.Folder == "" { // carpeta base
+		pathFile = pathFile + req.File
+	} else {
+		pathFile = pathFile + req.Folder + GetDatabaseInstance().Separator + req.File
+	}
+	if _, err := os.Stat(pathFile); os.IsNotExist(err) {
 		return "", errors.New(ERROR_FILE_NOT_EXISTS)
 	}
 	files, inMap := OpenedFiles[req.Token]
@@ -315,7 +332,6 @@ func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
 		}
 	}
 	// no tiene archivos abiertos o no coincide, creo un nuevo arreglo
-	pathFile := email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File
 	OpenedFiles[req.Token] = append(OpenedFiles[req.Token], pathFile)
 	return pathFile, nil
 }
@@ -328,6 +344,12 @@ func remove(s []string, i int) []string {
 
 func (db *database) DoctorCloseFile(req CloseFileRequest) error {
 	email := LogedUsers[req.Token].Email
+	filePath := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator
+	if req.Folder == "" {
+		filePath = filePath + req.File
+	} else {
+		filePath = filePath + req.Folder + GetDatabaseInstance().Separator + req.File
+	}
 	if _, err := os.Stat(GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder + GetDatabaseInstance().Separator + req.File); os.IsNotExist(err) {
 		return errors.New(ERROR_FILE_NOT_EXISTS)
 	}

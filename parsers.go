@@ -139,8 +139,8 @@ func (p *parser) LogoutRequest(r *http.Request) (JwtToken, error) {
 }
 
 type AddFolderRequest struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
+	Token  string `json:"token"`
+	Folder string `json:"folder"`
 }
 
 func (p *parser) DoctorAddFolderRequest(r *http.Request) (AddFolderRequest, error) {
@@ -157,7 +157,7 @@ func (p *parser) DoctorAddFolderRequest(r *http.Request) (AddFolderRequest, erro
 	if govalidator.IsNull(toReturn.Token) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_TOKEN)
 	}
-	if govalidator.IsNull(toReturn.Name) {
+	if govalidator.IsNull(toReturn.Folder) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_NAME)
 	}
 	return toReturn, nil
@@ -254,7 +254,7 @@ func (p *parser) DoctorAddFileRequest(r *http.Request) error {
 		return errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
-		return errors.New(ERROR_BAD_FORMED_FOLDER)
+		toReturn.Folder = "" //intenta agregar un archivo en la carpeta del mismo email
 	}
 	return nil
 }
@@ -277,7 +277,7 @@ func (p *parser) DoctorDeleteFileRequest(r *http.Request) (DelFileRequest, error
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+		toReturn.Folder = "" // carpeta default
 	}
 
 	if govalidator.IsNull(toReturn.File) {
@@ -331,7 +331,7 @@ func (p *parser) DoctorOpenFileRequest(r *http.Request) (OpenFileRequest, error)
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+		toReturn.Folder = "" //carpeta base
 	}
 	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
@@ -357,7 +357,7 @@ func (p *parser) DoctorCloseFileRequest(r *http.Request) (CloseFileRequest, erro
 		return toReturn, errToken
 	}
 	if govalidator.IsNull(toReturn.Folder) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+		toReturn.Folder = "" //carpeta base
 	}
 	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)

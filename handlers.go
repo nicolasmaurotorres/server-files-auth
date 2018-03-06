@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -25,10 +24,6 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	}
 	// control de pass y user que sean iguales
 	// TODO: hacer un hashing de la pass al enviarla desde el cleinte y al dar de alta en el servidor
-	fmt.Println(cat)
-	fmt.Println(userDBO.Category)
-	fmt.Println(userDBO.Email)
-	fmt.Println(userDBO.Password)
 	if user.Password != userDBO.Password || user.Email != userDBO.Email || userDBO.Category != cat {
 		return toReturn, errors.New(ERROR_SERVER)
 	}
@@ -181,14 +176,14 @@ func AdminDeleteUser(w http.ResponseWriter, r *http.Request) {
 // change name or email of a valid user
 func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	addFileRequest, errToken := GetParserInstance().AdminEditUserRequest(r)
+	editRequest, errToken := GetParserInstance().AdminEditUserRequest(r)
 	var response Response
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		err := GetDatabaseInstance().AdminEditUser(addFileRequest)
+		err := GetDatabaseInstance().AdminEditUser(editRequest)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest

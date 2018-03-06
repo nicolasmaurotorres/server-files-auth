@@ -57,6 +57,8 @@ const (
 	ERROR_BAD_FORMED_EMAIL_EMPTY  = "the email is empty"
 	ERROR_EMAIL_NOT_EXISTS        = "the email does not exists"
 	ERROR_INSERT_NEW_USER         = "fail when trying to create new user"
+	ERROR_FOLDER_NOT_EXISTS       = "the folder does not exists"
+	ERROR_FILE_OPENED_RENAMED     = "the file is opened, cannot be renamed"
 )
 
 type Pair struct {
