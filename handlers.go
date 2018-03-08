@@ -252,8 +252,31 @@ func DoctorDeleteFile(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type ResponseDirectorys struct {
+	Message string     `json:"message"`
+	Status  int        `json:"status"`
+	Folders Directorys `json:"folders"`
+}
+
 // returns all files to visualize
-func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {}
+func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	getFiles, err := GetParserInstance().DoctorGetFilesRequest(req)
+	var response ResponseDirectorys
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		folder := GetDatabaseInstance().DoctorGetFiles(getFiles)
+		w.WriteHeader(http.StatusOK)
+		response.Message = "OK"
+		response.Status = http.StatusOK
+		response.Folders = folder
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 // add to the hashtable the file that is opened
 func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {

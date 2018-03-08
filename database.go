@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -422,4 +423,33 @@ func cleanDataUserEdited(email string) {
 	if inMap {
 		delete(OpenedFiles, oldToken.Token)
 	}
+}
+
+type Directorys struct {
+	Folder     string
+	Files      []string
+	SubFolders []Directorys
+}
+
+func (db *database) DoctorGetFiles(req JwtToken) Directorys {
+	email := LogedUsers[req.Token].Email
+	basePath := GetDatabaseInstance().BasePath + email
+	base := Directorys{Folder: basePath, Files: make([]string, 0), SubFolders: nil}
+	return DFSFolders(base)
+}
+
+func DFSFolders(acum Directorys) Directorys {
+	files, _ := ioutil.ReadDir(acum.Folder)
+	for _, f := range files {
+		if f.IsDir() {
+			//es un directorio, busco en las prufundidades
+			aux := Directorys{Folder: acum.Folder + GetDatabaseInstance().Separator + f.Name(), Files: make([]string, 0), SubFolders: nil}
+			subFolder := DFSFolders(aux)
+			acum.SubFolders = append(acum.SubFolders, subFolder)
+		} else {
+			//es un archivo, lo agrego al arreglo de archivos
+			acum.Files = append(acum.Files, f.Name())
+		}
+	}
+	return acum
 }
