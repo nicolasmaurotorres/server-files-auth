@@ -329,7 +329,24 @@ func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // search in the files by some filters on json object and return a json object with the result
-func SearchFiles(w http.ResponseWriter, r *http.Request) {}
+func PlademaSearchFiles(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	searchFiles, err := GetParserInstance().PlademaSearchFilesRequest(r)
+	var response ResponseDirectorys
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		directorys := GetDatabaseInstance().PlademaSearchFiles(searchFiles)
+		w.WriteHeader(http.StatusOK)
+		response.Message = CREATE_FOLDER_SUCCESS
+		response.Status = http.StatusOK
+		response.Folders = directorys
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

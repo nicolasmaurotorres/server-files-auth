@@ -99,7 +99,7 @@ var routes = Routes{
 		DoctorDeleteFile,
 	},
 	Route{
-		"DoctorGetFiles",
+		"DoctorGetFiles", //ok
 		"POST",
 		"/doctor/get/files",
 		DoctorGetFiles,
@@ -127,7 +127,7 @@ var routes = Routes{
 		"searchFiles", // operacion para usuario pladema
 		"POST",
 		"/pladema/search/files",
-		SearchFiles,
+		PlademaSearchFiles,
 	},
 	// Common Operations
 	Route{

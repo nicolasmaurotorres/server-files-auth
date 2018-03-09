@@ -410,3 +410,21 @@ func (p *parser) DoctorGetFilesRequest(r *http.Request) (JwtToken, error) {
 	}
 	return toReturn, nil
 }
+
+type SearchFileRequest struct {
+	Token  string   `json:"token"`
+	Emails []string `json:"emails"` // si los emails estan vacios, traigo todos los emails
+}
+
+func (p *parser) PlademaSearchFilesRequest(r *http.Request) (SearchFileRequest, error) {
+	var toReturn SearchFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	return toReturn, nil
+}

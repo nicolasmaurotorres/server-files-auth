@@ -453,3 +453,28 @@ func DFSFolders(acum Directorys) Directorys {
 	}
 	return acum
 }
+
+func (db *database) PlademaSearchFiles(req SearchFileRequest) Directorys {
+	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath)
+	var toReturn Directorys
+	toReturn.Folder = GetDatabaseInstance().BasePath
+	for _, item := range files {
+		if len(req.Emails) == 0 {
+			toExplore := GetDatabaseInstance().BasePath + item.Name()
+			//runes := []rune(value)
+			//safeSubstring := string(runes[0:len(toExplore)-1])
+			aux := Directorys{Folder: toExplore, Files: make([]string, 0), SubFolders: nil}
+			subFolder := DFSFolders(aux)
+			toReturn.SubFolders = append(toReturn.SubFolders, subFolder)
+		} else {
+			for _, email := range req.Emails {
+				if s.Contains(item.Name(), email) {
+					aux := Directorys{Folder: GetDatabaseInstance().BasePath + item.Name(), Files: make([]string, 0), SubFolders: nil}
+					subFolder := DFSFolders(aux)
+					toReturn.SubFolders = append(toReturn.SubFolders, subFolder)
+				}
+			}
+		}
+	}
+	return toReturn
+}
