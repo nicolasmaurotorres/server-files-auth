@@ -328,11 +328,17 @@ func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
+type ResponsePlademaDirectorys struct {
+	Message string       `json:"message"`
+	Status  int          `json:"status"`
+	Folders []Directorys `json:"folders"`
+}
+
 // search in the files by some filters on json object and return a json object with the result
 func PlademaSearchFiles(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	searchFiles, err := GetParserInstance().PlademaSearchFilesRequest(r)
-	var response ResponseDirectorys
+	var response ResponsePlademaDirectorys
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()

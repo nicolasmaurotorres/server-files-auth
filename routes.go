@@ -124,7 +124,7 @@ var routes = Routes{
 		PlademaAddFile,
 	},
 	Route{
-		"searchFiles", // operacion para usuario pladema
+		"searchFiles", // ok
 		"POST",
 		"/pladema/search/files",
 		PlademaSearchFiles,
