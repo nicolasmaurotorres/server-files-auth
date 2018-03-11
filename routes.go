@@ -125,11 +125,7 @@ var routes = Routes{
 	},
 	//Pladema specific operations
 	Route{
-<<<<<<< HEAD
 		"plademaSearchFiles", // ok
-=======
-		"searchFiles", // ok
->>>>>>> 609c8b306b00fbbc5e5572f2f1688e62712a88fa
 		"POST",
 		"/pladema/search/files",
 		PlademaSearchFiles,

@@ -512,7 +512,6 @@ func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {
 	}
 	return toReturn
 }
-<<<<<<< HEAD
 
 func (db *database) ChangeFileLocation(req ChangeFileRequest) error {
 	path := getPathOperation(&req)
@@ -546,5 +545,3 @@ func (db *database) ChangeFileLocation(req ChangeFileRequest) error {
 	}
 	return nil
 }
-=======
->>>>>>> 609c8b306b00fbbc5e5572f2f1688e62712a88fa

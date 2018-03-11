@@ -59,7 +59,6 @@ const (
 	ERROR_INSERT_NEW_USER         = "fail when trying to create new user"
 	ERROR_FOLDER_NOT_EXISTS       = "the folder does not exists"
 	ERROR_FILE_OPENED_RENAMED     = "the file is opened, cannot be renamed"
-	ERROR_EMAIl_PASSWORD_FAILD    = "the email or password are not correct"
 )
 
 type Pair struct {

@@ -457,7 +457,6 @@ func (p *parser) PlademaSearchFilesRequest(r *http.Request) (SearchFileRequest, 
 	}
 	return toReturn, nil
 }
-<<<<<<< HEAD
 
 type ChangeFileRequest struct {
 	Token          string `json:"token"`
@@ -500,5 +499,3 @@ func (p *parser) ChangeFileLocationRequest(r *http.Request) (ChangeFileRequest, 
 	}
 	return toReturn, nil
 }
-=======
->>>>>>> 609c8b306b00fbbc5e5572f2f1688e62712a88fa
