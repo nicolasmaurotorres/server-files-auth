@@ -49,57 +49,64 @@ var routes = Routes{
 		"/admin/delete/user",
 		AdminDeleteUser,
 	},
-	Route{ //TODO:
-		"AdminEditUser",
+	Route{
+		"AdminEditUser", //ok
 		"POST",
 		"/admin/edit/user",
 		AdminEditUser,
 	},
-	//Doctor operations
+	//Doctor and pladema common operations
 	Route{
-		"DoctorAddFolder", // ok
+		"AddFolder", // ok
 		"POST",
-		"/doctor/add/folder",
-		DoctorAddFolder,
+		"/add/folder",
+		AddFolder,
 	},
 	Route{
-		"DoctorDeleteFolder", // ok
+		"DeleteFolder", // ok
 		"POST",
-		"/doctor/delete/folder",
-		DoctorDeleteFolder,
+		"/delete/folder",
+		DeleteFolder,
 	},
 	Route{
-		"DoctorRenameFolder", // ok
+		"RenameFolder", // ok
 		"POST",
-		"/doctor/rename/folder",
-		DoctorRenameFolder,
+		"/rename/folder",
+		RenameFolder,
 	},
 	Route{
-		"DoctorRenameFile", // ok
+		"RenameFile", // ok
 		"POST",
-		"/doctor/rename/file",
-		DoctorRenameFile,
+		"/rename/file",
+		RenameFile,
 	},
 	Route{
-		"DoctorChangeFileFolder",
+		"ChangeFileFolder",
 		"POST",
-		"doctor/change/filefolder",
-		DoctorChangeFileFolder,
+		"/copy/file/to/location",
+		ChangeFileLocation,
 	},
+	/*Route{
+		"DoctorChangeFolder",
+		"POST",
+		"/change/folder/location",
+		DoctorChangeFolder,
+	},*/
 	Route{
 		"DoctorAddFile", // ok
 		"POST",
-		"/doctor/add/file",
+		"/add/file",
 		DoctorAddFile,
 	},
 	Route{
 		"DoctorDeleteFile", // ok
 		"POST",
-		"/doctor/delete/file",
+		"/delete/file",
 		DoctorDeleteFile,
 	},
+	//Doctor specific operations
 	Route{
-		"DoctorGetFiles",
+		"DoctorGetFiles", //ok
 		"POST",
 		"/doctor/get/files",
 		DoctorGetFiles,
@@ -116,18 +123,12 @@ var routes = Routes{
 		"/doctor/close/file",
 		DoctorCloseFile,
 	},
-	//Pladema operations
+	//Pladema specific operations
 	Route{
-		"PlademaAddFile", // tanto para doctor como para pladema
-		"POST",
-		"/pladema/add/file",
-		PlademaAddFile,
-	},
-	Route{
-		"searchFiles", // operacion para usuario pladema
+		"plademaSearchFiles", // ok
 		"POST",
 		"/pladema/search/files",
-		SearchFiles,
+		PlademaSearchFiles,
 	},
 	// Common Operations
 	Route{

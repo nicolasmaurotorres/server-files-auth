@@ -126,9 +126,21 @@ func (db *database) GetUserByEmail(email string) (UserDBO, error) {
 	return userToReturn, nil
 }
 
-func (db *database) DoctorAddFolder(req AddFolderRequest) error {
-	email := LogedUsers[req.Token].Email
-	errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email+GetDatabaseInstance().Separator+req.Folder, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
+func getPathOperation(req CommonOperation) string {
+	var path string
+	if LogedUsers[req.GetToken()].Category == REQUEST_DOCTOR {
+		email := LogedUsers[req.GetToken()].Email
+		path = GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.GetFolder()
+	} else {
+		path = GetDatabaseInstance().BasePath + req.GetFolder() //el pladema ya me manda el path con el email
+	}
+	return path
+}
+
+func (db *database) AddFolder(req AddFolderRequest) error {
+	param := &req
+	path := getPathOperation(param)
+	errCreate := os.Mkdir(path, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
 		return errCreate // no se pudo crear la carpeta
 	}
@@ -148,17 +160,17 @@ func folderContainOpenFile(token string, path string) bool {
 	return false
 }
 
-func (db *database) DoctorDeleteFolder(req DelFolderRequest) error {
-	//TODO: ver como se guuardar en el OpenedFiles
+func (db *database) DeleteFolder(req DelFolderRequest) error {
+	param := &req
+	path := getPathOperation(param)
 	if folderContainOpenFile(req.Token, req.Folder) {
 		return errors.New(ERROR_FOLDER_WITH_OPEN_FILE)
 	}
-	email := LogedUsers[req.Token].Email
-	toDelete := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.Folder
-	if _, err := os.Stat(toDelete); os.IsNotExist(err) {
+	//email := LogedUsers[req.Token].Email
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return errors.New(ERROR_FOLDER_NOT_EXISTS)
 	}
-	errDel := os.RemoveAll(toDelete)
+	errDel := os.RemoveAll(path)
 	if errDel != nil {
 		return errDel
 	}
@@ -196,15 +208,15 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 	if userDeleted.Category == REQUEST_DOCTOR {
 		errDelFolder := os.RemoveAll(GetDatabaseInstance().BasePath + user.Email) //error deleting the folder
 		// delete the opened files
-		jwtToken, _ := generateToken(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_DOCTOR)
-		files := OpenedFiles[jwtToken.Token]
-		delete(OpenedFiles, jwtToken.Token)
+		tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_DOCTOR)
+		files := OpenedFiles[tokenUser]
+		delete(OpenedFiles, tokenUser)
 
 		if errDelFolder != nil {
 			if theValue != nil {
 				LogedUsers[tokenDeletedUser] = theValue //"rollback"
 			}
-			OpenedFiles[jwtToken.Token] = files           //add the opened files
+			OpenedFiles[tokenUser] = files                //add the opened files
 			errRollBack := collection.Insert(userDeleted) // re-insert the deleted user
 			if errRollBack != nil {
 				return errors.New(ERROR_SERVER)
@@ -215,9 +227,22 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 	return nil
 }
 
-func (db *database) DoctorRenameFolder(req RenameFolderRequest) error {
-	email := LogedUsers[req.Token].Email
-	openedFilesForUser, ptrs := OpenedFiles[req.Token]
+func (db *database) RenameFolder(req RenameFolderRequest) error {
+	tokenUser := req.Token
+	if LogedUsers[req.Token].Category == REQUEST_PLADEMA {
+		//el usuario que genero esta operacion, es un usuario pladema, tengo que generar el token del doctor al cual voy a renombrar la carpeta
+		slices := s.Split(req.OldFolder, GetDatabaseInstance().Separator)
+		if GetDatabaseInstance().ExistsEmail(slices[0]) {
+			user, _ := GetDatabaseInstance().GetUserByEmail(slices[0])
+			token := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_DOCTOR)
+			tokenUser = token
+		} else {
+			return errors.New(ERROR_EMAIL_NOT_EXISTS) // el email del path no existe
+		}
+	}
+	//obtengo los archivos abiertos del usuario doctor
+	openedFilesForUser, ptrs := OpenedFiles[tokenUser]
+	email := LogedUsers[tokenUser].Email
 	found := false
 	if ptrs {
 		//significa que tiene archivos abiertos, tengo que verificar si la carpeta que quiere renombrar NO ESTE esta aqui
@@ -287,8 +312,20 @@ func (db *database) DoctorDeleteFile(req DelFileRequest) error {
 	return nil
 }
 
-func (db *database) DoctorRenameFile(req RenameFileDoctorRequest) error {
-	files, inMap := OpenedFiles[req.Token]
+func (db *database) RenameFile(req RenameFileDoctorRequest) error {
+	token := req.Token
+	path := getPathOperation(&req)
+	if LogedUsers[req.Token].Category == REQUEST_PLADEMA {
+		slices := s.Split(path, GetDatabaseInstance().Separator)
+		if GetDatabaseInstance().ExistsEmail(slices[0]) {
+			user, _ := GetDatabaseInstance().GetUserByEmail(slices[0])
+			tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_DOCTOR)
+			token = tokenUser
+		} else {
+			return errors.New(ERROR_EMAIL_NOT_EXISTS) // el email del path no existe
+		}
+	}
+	files, inMap := OpenedFiles[token]
 	if inMap {
 		//el usuario tiene algun archivo abierto,
 		for _, value := range files {
@@ -410,18 +447,18 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 
 func cleanDataUserEdited(email string) {
 	user, _ := GetDatabaseInstance().GetUserByEmail(email)
-	oldToken, _ := generateToken(UserLoginRequest{Email: user.Email, Password: user.Password}, user.Category)
+	oldToken := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, user.Category)
 	//lo deslogueo si esta logueado
 	for key := range LogedUsers {
-		if key == oldToken.Token {
+		if key == oldToken {
 			delete(LogedUsers, key)
 			break
 		}
 	}
 	// borro todos los archivos abiertos si es que tiene
-	_, inMap := OpenedFiles[oldToken.Token]
+	_, inMap := OpenedFiles[oldToken]
 	if inMap {
-		delete(OpenedFiles, oldToken.Token)
+		delete(OpenedFiles, oldToken)
 	}
 }
 
@@ -452,4 +489,59 @@ func DFSFolders(acum Directorys) Directorys {
 		}
 	}
 	return acum
+}
+
+func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {
+	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath)
+	var toReturn []Directorys
+	for _, item := range files {
+		if len(req.Emails) == 0 {
+			toExplore := GetDatabaseInstance().BasePath + item.Name()
+			aux := Directorys{Folder: toExplore, Files: make([]string, 0), SubFolders: nil}
+			subFolder := DFSFolders(aux)
+			toReturn = append(toReturn, subFolder)
+		} else {
+			for _, email := range req.Emails {
+				if s.Contains(item.Name(), email) {
+					aux := Directorys{Folder: GetDatabaseInstance().BasePath + item.Name(), Files: make([]string, 0), SubFolders: nil}
+					subFolder := DFSFolders(aux)
+					toReturn = append(toReturn, subFolder)
+				}
+			}
+		}
+	}
+	return toReturn
+}
+
+func (db *database) ChangeFileLocation(req ChangeFileRequest) error {
+	path := getPathOperation(&req)
+	sFile, err := os.Open(path + GetDatabaseInstance().Separator + req.File)
+	defer sFile.Close()
+	if err != nil {
+		fmt.Println(path)
+		return err // the file does not exits
+	}
+	newLocation := req.GetDestinationFolder()
+	if _, err := os.Stat(newLocation); os.IsNotExist(err) { // carpeta destino no existe
+		return errors.New(ERROR_FOLDER_NOT_EXISTS)
+	}
+	newFileLocation := newLocation + GetDatabaseInstance().Separator + req.File
+	if _, err := os.Stat(newFileLocation); err == nil { // archivo en el destino ya existe
+		return errors.New(ERROR_FILE_ALREADY_EXISTS)
+	}
+
+	eFile, err := os.Create(newFileLocation)
+	defer eFile.Close()
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(eFile, sFile) // first var shows number of bytes
+	if err != nil {
+		return err
+	}
+	err = eFile.Sync()
+	if err != nil {
+		return err
+	}
+	return nil
 }

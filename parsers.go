@@ -12,6 +12,11 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+type CommonOperation interface {
+	GetFolder() string
+	GetToken() string
+}
+
 var initializedParser uint32
 var instanceParser *parser
 
@@ -143,7 +148,15 @@ type AddFolderRequest struct {
 	Folder string `json:"folder"`
 }
 
-func (p *parser) DoctorAddFolderRequest(r *http.Request) (AddFolderRequest, error) {
+func (adr *AddFolderRequest) GetToken() string {
+	return adr.Token
+}
+
+func (adr *AddFolderRequest) GetFolder() string {
+	return adr.Folder
+}
+
+func (p *parser) AddFolderRequest(r *http.Request) (AddFolderRequest, error) {
 	var toReturn AddFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -168,7 +181,15 @@ type DelFolderRequest struct {
 	Folder string `json:"folder"`
 }
 
-func (p *parser) DoctorDeleteFolderRequest(r *http.Request) (DelFolderRequest, error) {
+func (adr *DelFolderRequest) GetToken() string {
+	return adr.Token
+}
+
+func (adr *DelFolderRequest) GetFolder() string {
+	return adr.Folder
+}
+
+func (p *parser) DeleteFolderRequest(r *http.Request) (DelFolderRequest, error) {
 	var toReturn DelFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -219,7 +240,7 @@ type RenameFolderRequest struct {
 	NewFolder string `json:"newfolder"`
 }
 
-func (p *parser) DoctorRenameFolderRequest(r *http.Request) (RenameFolderRequest, error) {
+func (p *parser) RenameFolderRequest(r *http.Request) (RenameFolderRequest, error) {
 	var toReturn RenameFolderRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -293,7 +314,15 @@ type RenameFileDoctorRequest struct {
 	Folder  string `json:"folder"`
 }
 
-func (p *parser) DoctorRenameFileRequest(r *http.Request) (RenameFileDoctorRequest, error) {
+func (rfr *RenameFileDoctorRequest) GetToken() string {
+	return rfr.Token
+}
+
+func (rfr *RenameFileDoctorRequest) GetFolder() string {
+	return rfr.Folder
+}
+
+func (p *parser) RenameFileRequest(r *http.Request) (RenameFileDoctorRequest, error) {
 	var toReturn RenameFileDoctorRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -407,6 +436,66 @@ func (p *parser) DoctorGetFilesRequest(r *http.Request) (JwtToken, error) {
 	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
+	}
+	return toReturn, nil
+}
+
+type SearchFileRequest struct {
+	Token  string   `json:"token"`
+	Emails []string `json:"emails"` // si los emails estan vacios, traigo todos los emails
+}
+
+func (p *parser) PlademaSearchFilesRequest(r *http.Request) (SearchFileRequest, error) {
+	var toReturn SearchFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	return toReturn, nil
+}
+
+type ChangeFileRequest struct {
+	Token          string `json:"token"`
+	File           string `json:"file"`
+	ActualLocation string `json:"actuallocation"`
+	NewLocation    string `json:"newlocation"`
+}
+
+func (cfr *ChangeFileRequest) GetToken() string {
+	return cfr.Token
+}
+
+func (cfr *ChangeFileRequest) GetFolder() string {
+	return cfr.ActualLocation
+}
+
+func (cfr *ChangeFileRequest) GetDestinationFolder() string {
+	if LogedUsers[cfr.Token].Category == REQUEST_DOCTOR {
+		email := LogedUsers[cfr.Token].Email
+		return GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + cfr.NewLocation
+	}
+	return GetDatabaseInstance().BasePath + cfr.NewLocation //el email puede ser distinto si es un usuario pladema
+}
+
+func (p *parser) ChangeFileLocationRequest(r *http.Request) (ChangeFileRequest, error) {
+	var toReturn ChangeFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.File) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	if govalidator.IsNull(toReturn.NewLocation) || govalidator.IsNull(toReturn.ActualLocation) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
 	}
 	return toReturn, nil
 }

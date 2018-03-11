@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,10 +15,32 @@ type Response struct {
 	Status  int    `json:"status"`
 }
 
+func generateTokenWithoutControl(user UserLoginRequest, cat int) string {
+	var key []byte
+	switch cat {
+	case REQUEST_DOCTOR:
+		key = SigningKeyDoctor
+		break
+	case REQUEST_PLADEMA:
+		key = SigningKeyPladema
+		break
+	case REQUEST_ADMIN:
+		key = SigningKeyAdmin
+		break
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": user.Email,
+		"password": user.Password,
+	})
+	tokenString, _ := token.SignedString(key)
+	return tokenString
+}
+
 // Precondicion: el token que se pasa es valido, contiene el user.Email y user.Password y son datos validos
 func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	var key []byte
 	var toReturn JwtToken
+	var category int
 	userDBO, err := GetDatabaseInstance().GetUserByEmail(user.Email)
 	if err != nil {
 		return JwtToken{Token: ""}, err
@@ -25,14 +48,16 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	// control de pass y user que sean iguales
 	// TODO: hacer un hashing de la pass al enviarla desde el cleinte y al dar de alta en el servidor
 	if user.Password != userDBO.Password || user.Email != userDBO.Email || userDBO.Category != cat {
-		return toReturn, errors.New(ERROR_SERVER)
+		return toReturn, errors.New(ERROR_MISSMATCH_USER_PASSWORD)
 	}
 	switch cat {
 	case REQUEST_DOCTOR:
 		key = SigningKeyDoctor
+		category = REQUEST_DOCTOR
 		break
 	case REQUEST_PLADEMA:
 		key = SigningKeyPladema
+		category = REQUEST_PLADEMA
 		break
 	case REQUEST_ADMIN:
 		key = SigningKeyAdmin
@@ -52,7 +77,7 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 		return toReturn, errors.New(ERROR_USER_ALREADY_LOGUED)
 	}
 	toReturn.Token = tokenString
-	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email}
+	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email, Category: category}
 	return toReturn, nil
 }
 
@@ -328,8 +353,31 @@ func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
+type ResponsePlademaDirectorys struct {
+	Message string       `json:"message"`
+	Status  int          `json:"status"`
+	Folders []Directorys `json:"folders"`
+}
+
 // search in the files by some filters on json object and return a json object with the result
-func SearchFiles(w http.ResponseWriter, r *http.Request) {}
+func PlademaSearchFiles(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	searchFiles, err := GetParserInstance().PlademaSearchFilesRequest(r)
+	var response ResponsePlademaDirectorys
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		directorys := GetDatabaseInstance().PlademaSearchFiles(searchFiles)
+		w.WriteHeader(http.StatusOK)
+		response.Message = CREATE_FOLDER_SUCCESS
+		response.Status = http.StatusOK
+		response.Folders = directorys
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
 
 func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -362,16 +410,16 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
+func AddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	folderRequest, err := GetParserInstance().DoctorAddFolderRequest(r)
+	folderRequest, err := GetParserInstance().AddFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errCreate := GetDatabaseInstance().DoctorAddFolder(folderRequest)
+		errCreate := GetDatabaseInstance().AddFolder(folderRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -386,16 +434,16 @@ func DoctorAddFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
+func DeleteFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	delFolderRequest, err := GetParserInstance().DoctorDeleteFolderRequest(r)
+	delFolderRequest, err := GetParserInstance().DeleteFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errFolder := GetDatabaseInstance().DoctorDeleteFolder(delFolderRequest)
+		errFolder := GetDatabaseInstance().DeleteFolder(delFolderRequest)
 		if errFolder != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errFolder.Error()
@@ -410,16 +458,16 @@ func DoctorDeleteFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
+func RenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFolderRequest, err := GetParserInstance().DoctorRenameFolderRequest(r)
+	renameFolderRequest, err := GetParserInstance().RenameFolderRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errRenamFolder := GetDatabaseInstance().DoctorRenameFolder(renameFolderRequest)
+		errRenamFolder := GetDatabaseInstance().RenameFolder(renameFolderRequest)
 		if errRenamFolder != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Message = errRenamFolder.Error()
@@ -434,16 +482,16 @@ func DoctorRenameFolder(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DoctorRenameFile(w http.ResponseWriter, r *http.Request) {
+func RenameFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	renameFileRequest, err := GetParserInstance().DoctorRenameFileRequest(r)
+	renameFileRequest, err := GetParserInstance().RenameFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errRenamFolder := GetDatabaseInstance().DoctorRenameFile(renameFileRequest)
+		errRenamFolder := GetDatabaseInstance().RenameFile(renameFileRequest)
 		if errRenamFolder != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Message = errRenamFolder.Error()
@@ -458,4 +506,27 @@ func DoctorRenameFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func DoctorChangeFileFolder(w http.ResponseWriter, r *http.Request) {}
+func ChangeFileLocation(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	fmt.Println("pase")
+	changeFileRequest, err := GetParserInstance().ChangeFileLocationRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errRenamFolder := GetDatabaseInstance().ChangeFileLocation(changeFileRequest)
+		if errRenamFolder != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Message = errRenamFolder.Error()
+			response.Status = http.StatusBadRequest
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = RENAME_FILE_SUCCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
