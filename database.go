@@ -548,9 +548,7 @@ func (db *database) CopyFile(req ChangeFileRequest) error {
 
 func (db *database) CopyFolder(req CopyFolderRequest) error {
 	path := getPathOperation(&req) //carpeta que voy a copiar
-	fmt.Println(path)
 	dest := req.GetDestinationFolder()
-	fmt.Println(dest)
 	return CopyDir(path, dest)
 }
 
@@ -624,4 +622,16 @@ func CopyTheFile(source string, dest string) (err error) {
 
 	}
 	return nil
+}
+
+func (db *database) GetEmails() []string {
+	var toReturn []string
+	entries, err := ioutil.ReadDir(GetDatabaseInstance().BasePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, file := range entries {
+		toReturn = append(toReturn, file.Name())
+	}
+	return toReturn
 }

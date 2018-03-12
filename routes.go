@@ -81,13 +81,13 @@ var routes = Routes{
 		RenameFile,
 	},
 	Route{
-		"ChangeFileFolder",
+		"CopyFile", // ok
 		"POST",
 		"/copy/file/to/location",
 		CopyFile,
 	},
 	Route{
-		"CopyFolder",
+		"CopyFolder", //ok
 		"POST",
 		"/copy/folder/to/location",
 		CopyFolder,
@@ -129,6 +129,12 @@ var routes = Routes{
 		"POST",
 		"/pladema/search/files",
 		PlademaSearchFiles,
+	},
+	Route{
+		"plademaGetAllEmails", // ok
+		"POST",
+		"/pladema/get/emails",
+		PlademaGetEmails,
 	},
 	// Common Operations
 	Route{

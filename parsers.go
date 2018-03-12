@@ -537,3 +537,16 @@ func (p *parser) CopyFolderRequest(r *http.Request) (CopyFolderRequest, error) {
 	}
 	return toReturn, nil
 }
+
+func (p *parser) GetEmailsRequest(r *http.Request) error {
+	var toReturn JwtToken
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return errToken
+	}
+	return nil
+}

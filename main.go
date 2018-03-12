@@ -62,6 +62,7 @@ const (
 	ERROR_FOLDER_NOT_EXISTS       = "the folder does not exists"
 	ERROR_FILE_OPENED_RENAMED     = "the file is opened, cannot be renamed"
 	ERROR_FOLDER_EXISTS           = "the folder already exists"
+	GET_EMAILS_SUCCESS            = "success to get all emails"
 )
 
 type Pair struct {

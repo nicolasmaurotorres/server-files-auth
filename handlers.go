@@ -552,3 +552,29 @@ func CopyFolder(w http.ResponseWriter, r *http.Request) {
 	responseJSON, _ := json.Marshal(response)
 	w.Write(responseJSON)
 }
+
+type ResponseEmails struct {
+	Message string   `json:"message"`
+	Status  int      `json:"status"`
+	Emails  []string `json:"emails"`
+}
+
+func PlademaGetEmails(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err := GetParserInstance().GetEmailsRequest(r)
+	var response ResponseEmails
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		emails := GetDatabaseInstance().GetEmails()
+		response.Status = http.StatusBadRequest
+		w.WriteHeader(http.StatusOK)
+		response.Message = GET_EMAILS_SUCCESS
+		response.Status = http.StatusOK
+		response.Emails = emails
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
