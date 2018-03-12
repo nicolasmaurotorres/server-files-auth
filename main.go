@@ -24,6 +24,8 @@ const (
 	RENAME_FILE_SUCCESS           = "the file was renamed successfully"
 	FILE_OPEN_SUCCESS             = "the file was opened successfully"
 	FILE_CLOSE_SUCCESS            = "the file was closes successfully"
+	COPY_FILE_SUCESS              = "the file was copied"
+	COPY_FOLDER_SUCCESS           = "the folder was copied"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "error bad formed password"
@@ -59,6 +61,7 @@ const (
 	ERROR_INSERT_NEW_USER         = "fail when trying to create new user"
 	ERROR_FOLDER_NOT_EXISTS       = "the folder does not exists"
 	ERROR_FILE_OPENED_RENAMED     = "the file is opened, cannot be renamed"
+	ERROR_FOLDER_EXISTS           = "the folder already exists"
 )
 
 type Pair struct {

@@ -481,7 +481,7 @@ func (cfr *ChangeFileRequest) GetDestinationFolder() string {
 	return GetDatabaseInstance().BasePath + cfr.NewLocation //el email puede ser distinto si es un usuario pladema
 }
 
-func (p *parser) ChangeFileLocationRequest(r *http.Request) (ChangeFileRequest, error) {
+func (p *parser) CopyFileRequest(r *http.Request) (ChangeFileRequest, error) {
 	var toReturn ChangeFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	if err != nil {
@@ -495,6 +495,44 @@ func (p *parser) ChangeFileLocationRequest(r *http.Request) (ChangeFileRequest, 
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
 	}
 	if govalidator.IsNull(toReturn.NewLocation) || govalidator.IsNull(toReturn.ActualLocation) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
+	}
+	return toReturn, nil
+}
+
+type CopyFolderRequest struct {
+	Token       string `json:"token"`
+	Folder      string `json:"folder"`
+	NewLocation string `json:"newlocation"`
+}
+
+func (cfr *CopyFolderRequest) GetToken() string {
+	return cfr.Token
+}
+
+func (cft *CopyFolderRequest) GetFolder() string {
+	return cft.Folder
+}
+
+func (cft *CopyFolderRequest) GetDestinationFolder() string {
+	if LogedUsers[cft.Token].Category == REQUEST_DOCTOR {
+		email := LogedUsers[cft.Token].Email
+		return GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + cft.NewLocation
+	}
+	return GetDatabaseInstance().BasePath + cft.NewLocation
+}
+
+func (p *parser) CopyFolderRequest(r *http.Request) (CopyFolderRequest, error) {
+	var toReturn CopyFolderRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.NewLocation) || govalidator.IsNull(toReturn.Folder) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FOLDER)
 	}
 	return toReturn, nil

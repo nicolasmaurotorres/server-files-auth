@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -506,24 +505,47 @@ func RenameFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func ChangeFileLocation(w http.ResponseWriter, r *http.Request) {
+func CopyFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	fmt.Println("pase")
-	changeFileRequest, err := GetParserInstance().ChangeFileLocationRequest(r)
+	changeFileRequest, err := GetParserInstance().CopyFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errRenamFolder := GetDatabaseInstance().ChangeFileLocation(changeFileRequest)
+		errRenamFolder := GetDatabaseInstance().CopyFile(changeFileRequest)
 		if errRenamFolder != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Message = errRenamFolder.Error()
 			response.Status = http.StatusBadRequest
 		} else {
 			w.WriteHeader(http.StatusOK)
-			response.Message = RENAME_FILE_SUCCESS
+			response.Message = COPY_FILE_SUCESS
+			response.Status = http.StatusOK
+		}
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
+
+func CopyFolder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	changeFileRequest, err := GetParserInstance().CopyFolderRequest(r)
+	var response Response
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+	} else {
+		errRenamFolder := GetDatabaseInstance().CopyFolder(changeFileRequest)
+		if errRenamFolder != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			response.Message = errRenamFolder.Error()
+			response.Status = http.StatusBadRequest
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = COPY_FOLDER_SUCCESS
 			response.Status = http.StatusOK
 		}
 	}

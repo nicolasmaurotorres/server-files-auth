@@ -84,14 +84,14 @@ var routes = Routes{
 		"ChangeFileFolder",
 		"POST",
 		"/copy/file/to/location",
-		ChangeFileLocation,
+		CopyFile,
 	},
-	/*Route{
-		"DoctorChangeFolder",
+	Route{
+		"CopyFolder",
 		"POST",
-		"/change/folder/location",
-		DoctorChangeFolder,
-	},*/
+		"/copy/folder/to/location",
+		CopyFolder,
+	},
 	Route{
 		"DoctorAddFile", // ok
 		"POST",

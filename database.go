@@ -513,7 +513,7 @@ func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {
 	return toReturn
 }
 
-func (db *database) ChangeFileLocation(req ChangeFileRequest) error {
+func (db *database) CopyFile(req ChangeFileRequest) error {
 	path := getPathOperation(&req)
 	sFile, err := os.Open(path + GetDatabaseInstance().Separator + req.File)
 	defer sFile.Close()
@@ -542,6 +542,86 @@ func (db *database) ChangeFileLocation(req ChangeFileRequest) error {
 	err = eFile.Sync()
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func (db *database) CopyFolder(req CopyFolderRequest) error {
+	path := getPathOperation(&req) //carpeta que voy a copiar
+	fmt.Println(path)
+	dest := req.GetDestinationFolder()
+	fmt.Println(dest)
+	return CopyDir(path, dest)
+}
+
+func CopyDir(source string, dest string) (err error) {
+
+	// get properties of source dir
+	fi, err := os.Stat(source)
+	if err != nil {
+		return err
+	}
+
+	if !fi.IsDir() {
+		return errors.New(ERROR_FOLDER_NOT_EXISTS)
+	}
+
+	// ensure dest dir does not already exist
+
+	_, err = os.Open(dest)
+	if !os.IsNotExist(err) {
+		return errors.New(ERROR_FOLDER_EXISTS)
+	}
+
+	// create dest dir
+
+	err = os.MkdirAll(dest, fi.Mode())
+	if err != nil {
+		return err
+	}
+
+	entries, err := ioutil.ReadDir(source)
+
+	for _, entry := range entries {
+
+		sfp := source + "/" + entry.Name()
+		dfp := dest + "/" + entry.Name()
+		if entry.IsDir() {
+			err = CopyDir(sfp, dfp)
+			if err != nil {
+				return err
+			}
+		} else {
+			// perform copy
+			err = CopyTheFile(sfp, dfp)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+// Copies file source to destination dest.
+func CopyTheFile(source string, dest string) (err error) {
+	sf, err := os.Open(source)
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+	df, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer df.Close()
+	_, err = io.Copy(df, sf)
+	if err == nil {
+		si, err := os.Stat(source)
+		if err != nil {
+			err = os.Chmod(dest, si.Mode())
+		}
+
 	}
 	return nil
 }
