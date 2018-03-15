@@ -266,7 +266,7 @@ func (db *database) RenameFolder(req RenameFolderRequest) error {
 	return nil
 }
 
-func (db *database) DoctorAddFile(r *http.Request) error {
+func (db *database) AddFile(r *http.Request) error {
 	var toReturn AddFileRequest
 	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
 	file, handler, err := r.FormFile("file") // obtengo el archivo del request
@@ -295,7 +295,7 @@ func (db *database) DoctorAddFile(r *http.Request) error {
 	return nil
 }
 
-func (db *database) DoctorDeleteFile(req DelFileRequest) error {
+func (db *database) DeleteFile(req DelFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	// checkeo que el archivo que se quiera eliminar NO este abierto
 	for _, value := range OpenedFiles[req.Token] {

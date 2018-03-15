@@ -266,7 +266,7 @@ type AddFileRequest struct {
 	File   string
 }
 
-func (p *parser) DoctorAddFileRequest(r *http.Request) error {
+func (p *parser) AddFileRequest(r *http.Request) error {
 	var toReturn AddFileRequest
 	toReturn.Token = r.FormValue("token")
 	toReturn.Folder = r.FormValue("folder")
@@ -286,7 +286,7 @@ type DelFileRequest struct {
 	File   string `json:"file"`
 }
 
-func (p *parser) DoctorDeleteFileRequest(r *http.Request) (DelFileRequest, error) {
+func (p *parser) DeleteFileRequest(r *http.Request) (DelFileRequest, error) {
 	var toReturn DelFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -549,4 +549,25 @@ func (p *parser) GetEmailsRequest(r *http.Request) error {
 		return errToken
 	}
 	return nil
+}
+
+type GetFileRequest struct {
+	Token string `json:"token"`
+	File  string `json:"file"`
+}
+
+func (p *parser) PlademaGetFile(r *http.Request) (GetFileRequest, error) {
+	toReturn := GetFileRequest{Token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6InBsYWRlbWEiLCJ1c2VybmFtZSI6InBsYWRlbWFAcGxhZGVtYS5jb20ifQ.Pjzi2GOp1Qr2rZcTueRny_-8PXarMaZCWO1H2nqy-cU", File: "doctor@doctor.com/imagen_procesada.vtk"}
+	/*err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.File) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}*/
+	return toReturn, nil
 }

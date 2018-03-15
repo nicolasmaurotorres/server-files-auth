@@ -57,25 +57,25 @@ var routes = Routes{
 	},
 	//Doctor and pladema common operations
 	Route{
-		"AddFolder", // ok
+		"AddFolder",
 		"POST",
 		"/add/folder",
 		AddFolder,
 	},
 	Route{
-		"DeleteFolder", // ok
+		"DeleteFolder",
 		"POST",
 		"/delete/folder",
 		DeleteFolder,
 	},
 	Route{
-		"RenameFolder", // ok
+		"RenameFolder",
 		"POST",
 		"/rename/folder",
 		RenameFolder,
 	},
 	Route{
-		"RenameFile", // ok
+		"RenameFile",
 		"POST",
 		"/rename/file",
 		RenameFile,
@@ -87,22 +87,22 @@ var routes = Routes{
 		CopyFile,
 	},
 	Route{
-		"CopyFolder", //ok
+		"CopyFolder", //falta test doctor
 		"POST",
 		"/copy/folder/to/location",
 		CopyFolder,
 	},
 	Route{
-		"DoctorAddFile", // ok
+		"DoctorAddFile",
 		"POST",
 		"/add/file",
-		DoctorAddFile,
+		AddFile,
 	},
 	Route{
-		"DoctorDeleteFile", // ok
+		"DoctorDeleteFile",
 		"POST",
 		"/delete/file",
-		DoctorDeleteFile,
+		DeleteFile,
 	},
 	//Doctor specific operations
 	Route{
@@ -135,6 +135,12 @@ var routes = Routes{
 		"POST",
 		"/pladema/get/emails",
 		PlademaGetEmails,
+	},
+	Route{
+		"plademaGetFile",
+		"GET",
+		"/pladema/get/file",
+		PlademaGetFile,
 	},
 	// Common Operations
 	Route{
