@@ -267,22 +267,21 @@ func (db *database) RenameFolder(req RenameFolderRequest) error {
 }
 
 func (db *database) AddFile(r *http.Request) error {
-	var toReturn AddFileRequest
 	r.ParseMultipartForm(500 << 20)          // 500mb tamaño maximo
 	file, handler, err := r.FormFile("file") // obtengo el archivo del request
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+	var toReturn AddFileRequest
 	toReturn.Token = r.FormValue("token")
 	toReturn.Folder = r.FormValue("folder")
 	toReturn.File = handler.Filename
-	email := LogedUsers[toReturn.Token].Email
-	pathNewFile := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + toReturn.Folder + GetDatabaseInstance().Separator + handler.Filename
-	if _, err := os.Stat(pathNewFile); err == nil {
+	path := getPathOperation(&toReturn)
+	if _, err := os.Stat(path); err == nil {
 		return errors.New(ERROR_FILE_ALREADY_EXISTS)
 	}
-	f, errOpen := os.OpenFile(pathNewFile, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
+	f, errOpen := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0666) // creo un archivo con el nombre del que me mandaron
 	if errOpen != nil {
 		return errOpen
 	}

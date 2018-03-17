@@ -266,6 +266,14 @@ type AddFileRequest struct {
 	File   string
 }
 
+func (adr *AddFileRequest) GetToken() string {
+	return adr.Token
+}
+
+func (adr *AddFileRequest) GetFolder() string {
+	return adr.Folder + GetDatabaseInstance().Separator + adr.File
+}
+
 func (p *parser) AddFileRequest(r *http.Request) error {
 	var toReturn AddFileRequest
 	toReturn.Token = r.FormValue("token")
@@ -557,8 +565,8 @@ type GetFileRequest struct {
 }
 
 func (p *parser) PlademaGetFile(r *http.Request) (GetFileRequest, error) {
-	toReturn := GetFileRequest{Token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwYXNzd29yZCI6InBsYWRlbWEiLCJ1c2VybmFtZSI6InBsYWRlbWFAcGxhZGVtYS5jb20ifQ.Pjzi2GOp1Qr2rZcTueRny_-8PXarMaZCWO1H2nqy-cU", File: "doctor@doctor.com/imagen_procesada.vtk"}
-	/*err := json.NewDecoder(r.Body).Decode(&toReturn)
+	var toReturn GetFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	if err != nil {
 		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
 	}
@@ -568,6 +576,6 @@ func (p *parser) PlademaGetFile(r *http.Request) (GetFileRequest, error) {
 	}
 	if govalidator.IsNull(toReturn.File) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
-	}*/
+	}
 	return toReturn, nil
 }

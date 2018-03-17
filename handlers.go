@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	s "strings"
 	"time"
 
@@ -592,36 +593,24 @@ func PlademaGetFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//Check if file exists and open
 		Openfile, err := os.Open(GetDatabaseInstance().BasePath + getFileRequest.File)
+		modtime := time.Now()
 		defer Openfile.Close() //Close after function return
 		if err != nil {
 			//File not found, send 404
 			http.Error(w, "File not found.", 404)
 		} else {
-
 			w.Header().Set("Content-Type", "application/octet-stream")
 			slices := s.Split(getFileRequest.File, GetDatabaseInstance().Separator)
 			FIleName := slices[len(slices)-1] //obtengo el nombre del archivo
-			//Get the Content-Type of the file
-			//Create a buffer to store the header of the file in
 			FileHeader := make([]byte, 512)
-			//Copy the headers into the FileHeader buffer
 			Openfile.Read(FileHeader)
-			//Get content type of file
-			//FileContentType := http.DetectContentType(FileHeader)
-			//Get the file size
-			//FileStat, _ := Openfile.Stat() //Get info from file
-			//FileSize := strconv.FormatInt(FileStat.Size(), 10) //Get file size as a string
-			//Send the headers
-			// tell the browser the returned content should be downloaded
-			//w.Header().Add("Content-Disposition", "Attachment")
+
+			FileContentType := http.DetectContentType(FileHeader)
+			FileStat, _ := Openfile.Stat()                     //Get info from file
+			FileSize := strconv.FormatInt(FileStat.Size(), 10) //Get file size as a string
 			w.Header().Add("Content-Disposition", "attachment; filename="+FIleName)
-			//w.Header().Add("Content-Type", FileContentType)
-			//w.Header().Add("Content-Length", FileSize)
-			//Send the file
-			//We read 512 bytes from the file already so we reset the offset back to 0
-			//	Openfile.Seek(0, 0)
-			//	io.Copy(w, Openfile) //'Copy' the file to the client
-			modtime := time.Now()
+			w.Header().Add("Content-Type", FileContentType)
+			w.Header().Add("Content-Length", FileSize)
 			http.ServeContent(w, r, FIleName, modtime, Openfile)
 		}
 	}

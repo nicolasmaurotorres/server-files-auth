@@ -138,7 +138,7 @@ var routes = Routes{
 	},
 	Route{
 		"plademaGetFile",
-		"GET",
+		"POST",
 		"/pladema/get/file",
 		PlademaGetFile,
 	},
