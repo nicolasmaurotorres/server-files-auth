@@ -469,17 +469,17 @@ type Directorys struct {
 
 func (db *database) DoctorGetFiles(req JwtToken) Directorys {
 	email := LogedUsers[req.Token].Email
-	basePath := GetDatabaseInstance().BasePath + email
-	base := Directorys{Folder: basePath, Files: make([]string, 0), SubFolders: nil}
+	basePath := email
+	base := Directorys{Folder: basePath, Files: make([]string, 0), SubFolders: make([]Directorys, 0)}
 	return DFSFolders(base)
 }
 
 func DFSFolders(acum Directorys) Directorys {
-	files, _ := ioutil.ReadDir(acum.Folder)
+	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath + acum.Folder)
 	for _, f := range files {
 		if f.IsDir() {
 			//es un directorio, busco en las prufundidades
-			aux := Directorys{Folder: acum.Folder + GetDatabaseInstance().Separator + f.Name(), Files: make([]string, 0), SubFolders: nil}
+			aux := Directorys{Folder: acum.Folder + GetDatabaseInstance().Separator + f.Name(), Files: make([]string, 0), SubFolders: make([]Directorys, 0)}
 			subFolder := DFSFolders(aux)
 			acum.SubFolders = append(acum.SubFolders, subFolder)
 		} else {
