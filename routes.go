@@ -19,22 +19,10 @@ type Routes []Route
 var routes = Routes{
 	//Logins
 	Route{
-		"DoctorLogin", // ok
+		"RouteLogin", // ok
 		"POST",
-		"/doctor/login",
-		DoctorLogin,
-	},
-	Route{
-		"PlademaLogin", // ok
-		"POST",
-		"/pladema/login",
-		PlademaLogin,
-	},
-	Route{
-		"AdminLogin", // ok
-		"POST",
-		"/admin/login",
-		AdminLogin,
+		"/login",
+		RouteLogin,
 	},
 	//admin operations
 	Route{

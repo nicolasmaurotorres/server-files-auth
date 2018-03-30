@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -52,6 +53,7 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	if user.Password != userDBO.Password || user.Email != userDBO.Email || userDBO.Category != cat {
 		return toReturn, errors.New(ERROR_MISSMATCH_USER_PASSWORD)
 	}
+	fmt.Println("pase generate token")
 	switch cat {
 	case REQUEST_DOCTOR:
 		key = SigningKeyDoctor
@@ -79,72 +81,38 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 		return toReturn, errors.New(ERROR_USER_ALREADY_LOGUED)
 	}
 	toReturn.Token = tokenString
+	fmt.Println("pase generate token 2")
 	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email, Category: category}
 	return toReturn, nil
 }
 
-func LoginPerson(cat int, r *http.Request) (JwtToken, error) {
-	user, err := GetParserInstance().UserLoginRequest(r, cat)
-	var toReturn JwtToken
-	if err != nil {
-		return toReturn, err
-	}
-	token, err := generateToken(user, cat)
-	if err != nil {
-		return toReturn, err
-	}
-	return token, nil
+type ResponseLogin struct {
+	Message  string `json:"message"`
+	Status   int    `json:"status"`
+	Category int    `json:"category"`
 }
 
-// returns a auth token as doctor user
-func DoctorLogin(w http.ResponseWriter, r *http.Request) {
+func RouteLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	var response Response
-	token, err := LoginPerson(REQUEST_DOCTOR, r)
+	var response ResponseLogin
+	user, err := GetParserInstance().GetUser(r)
 	if err != nil {
+		fmt.Println("pase routeLogin 1")
 		w.WriteHeader(http.StatusBadGateway)
 		response.Message = err.Error()
 		response.Status = http.StatusBadGateway
 	} else {
-		w.WriteHeader(http.StatusOK)
-		response.Message = token.Token
-		response.Status = http.StatusOK
-	}
-	tokenJSON, _ := json.Marshal(response)
-	w.Write(tokenJSON)
-}
-
-// returns a auth token as pladema user
-func PlademaLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	var response Response
-	token, err := LoginPerson(REQUEST_PLADEMA, r)
-	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		response.Message = err.Error()
-		response.Status = http.StatusBadGateway
-	} else {
-		w.WriteHeader(http.StatusOK)
-		response.Message = token.Token
-		response.Status = http.StatusOK
-	}
-	tokenJSON, _ := json.Marshal(response)
-	w.Write(tokenJSON)
-}
-
-// returns a auth token as admin user
-func AdminLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	var response Response
-	token, err := LoginPerson(REQUEST_ADMIN, r)
-	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		response.Message = err.Error()
-		response.Status = http.StatusBadGateway
-	} else {
-		w.WriteHeader(http.StatusOK)
-		response.Message = token.Token
-		response.Status = http.StatusOK
+		token, err := generateToken(UserLoginRequest{Email: user.Email, Password: user.Password}, user.Category)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			response.Message = err.Error()
+			response.Status = http.StatusBadGateway
+		} else {
+			w.WriteHeader(http.StatusOK)
+			response.Message = token.Token
+			response.Status = http.StatusOK
+			response.Category = user.Category
+		}
 	}
 	tokenJSON, _ := json.Marshal(response)
 	w.Write(tokenJSON)

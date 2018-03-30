@@ -57,6 +57,28 @@ func isValidToken(tokenString string, checkTimeStamp bool) error {
 	}
 	return errors.New(ERROR_NOT_LOGUED_USER)
 }
+func (p *parser) GetUser(r *http.Request) (UserDBO, error) {
+	var user UserLoginRequest
+	err := json.NewDecoder(r.Body).Decode(&user)
+	defer r.Body.Close()
+	if err != nil {
+		return UserDBO{}, err
+	}
+	if govalidator.IsNull(user.Email) {
+		return UserDBO{}, errors.New(ERROR_BAD_FORMED_EMAIL_EMPTY)
+	}
+	if govalidator.IsNull(user.Password) {
+		return UserDBO{}, errors.New(ERROR_BAD_FORMED_PASSWORD)
+	}
+	if !GetDatabaseInstance().ExistsEmail(user.Email) {
+		return UserDBO{}, errors.New(ERROR_EMAIL_NOT_EXISTS)
+	}
+	userDBO, errUser := GetDatabaseInstance().GetUserByEmail(user.Email)
+	if errUser != nil {
+		return UserDBO{}, errUser
+	}
+	return userDBO, nil
+}
 
 type UserLoginRequest struct {
 	Email    string `json:"email"`
