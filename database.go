@@ -120,8 +120,6 @@ func (db *database) GetUserByEmail(email string) (UserDBO, error) {
 	query := make(map[string]string)
 	query["email"] = email
 	err := collection.Find(query).One(&userToReturn)
-	fmt.Println(userToReturn.Email)
-	fmt.Println(userToReturn.Password)
 	if err != nil {
 		return userToReturn, errors.New(ERROR_NOT_EXISTING_USER)
 	}

@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/cors"
 )
 
 const (
@@ -82,5 +84,6 @@ func main() {
 	// cd $GOPATH/src/github/nicolasmaurotorres/rest-api
 	// go build && ./rest-api
 	router := NewRouter()
-	log.Fatal(http.ListenAndServe(":8001", router))
+	handler := cors.Default().Handler(router)
+	log.Fatal(http.ListenAndServe(":8001", handler))
 }
