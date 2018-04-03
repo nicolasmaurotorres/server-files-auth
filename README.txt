@@ -40,7 +40,7 @@ Referential Links:
 	* use tesis
 	* db.createCollection("users")
 - defaults users only for testing
-	* db.users.insert({"category":2,"email":"admin","password":"admin"})
+	* db.users.insert({"category":2,"email":"admin@admin.com","password":"admin"})
 	* db.users.insert({"category":1,"email":"pladema@pladema.com","password":"pladema"})
 	* db.users.insert({"category":0,"email":"doctor@doctor.com","password":"doctor"})
 	

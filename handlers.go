@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -53,7 +52,6 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	if user.Password != userDBO.Password || user.Email != userDBO.Email || userDBO.Category != cat {
 		return toReturn, errors.New(ERROR_MISSMATCH_USER_PASSWORD)
 	}
-	fmt.Println("pase generate token")
 	switch cat {
 	case REQUEST_DOCTOR:
 		key = SigningKeyDoctor
@@ -81,7 +79,6 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 		return toReturn, errors.New(ERROR_USER_ALREADY_LOGUED)
 	}
 	toReturn.Token = tokenString
-	fmt.Println("pase generate token 2")
 	LogedUsers[tokenString] = &Pair{TimeLogIn: time.Now(), Email: user.Email, Category: category}
 	return toReturn, nil
 }
@@ -94,27 +91,30 @@ type ResponseLogin struct {
 
 func RouteLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	var response ResponseLogin
-	user, err := GetParserInstance().GetUser(r)
+	var responseOK ResponseLogin
+	var responseBAD Response
+	var tokenJSON []byte
+	user, cat, err := GetParserInstance().GetUserAndCategory(r)
 	if err != nil {
-		fmt.Println("pase routeLogin 1")
 		w.WriteHeader(http.StatusBadGateway)
-		response.Message = err.Error()
-		response.Status = http.StatusBadGateway
+		responseBAD.Message = err.Error()
+		responseBAD.Status = http.StatusBadGateway
+		tokenJSON, _ = json.Marshal(responseBAD)
 	} else {
-		token, err := generateToken(UserLoginRequest{Email: user.Email, Password: user.Password}, user.Category)
+		token, err := generateToken(user, cat)
 		if err != nil {
 			w.WriteHeader(http.StatusBadGateway)
-			response.Message = err.Error()
-			response.Status = http.StatusBadGateway
+			responseBAD.Message = err.Error()
+			responseBAD.Status = http.StatusBadGateway
+			tokenJSON, _ = json.Marshal(responseBAD)
 		} else {
 			w.WriteHeader(http.StatusOK)
-			response.Message = token.Token
-			response.Status = http.StatusOK
-			response.Category = user.Category
+			responseOK.Message = token.Token
+			responseOK.Status = http.StatusOK
+			responseOK.Category = cat
+			tokenJSON, _ = json.Marshal(responseOK)
 		}
 	}
-	tokenJSON, _ := json.Marshal(response)
 	w.Write(tokenJSON)
 }
 
