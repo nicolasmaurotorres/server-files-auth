@@ -32,7 +32,7 @@ func generateTokenWithoutControl(user UserLoginRequest, cat int) string {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": user.Email,
-		"password": user.Password,
+		"category": cat,
 	})
 	tokenString, _ := token.SignedString(key)
 	return tokenString
@@ -69,8 +69,8 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 	}
 	//genero el token del usuario, lo guardo en la hash, y lo devuelvo
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Email,
-		"password": user.Password,
+		"username": userDBO.Email,
+		"category": userDBO.Category,
 	})
 	tokenString, _ := token.SignedString(key)
 	//controlo que el usuario NO este logueado previamente
