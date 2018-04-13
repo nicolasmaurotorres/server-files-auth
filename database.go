@@ -496,13 +496,13 @@ func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {
 	for _, item := range files {
 		if len(req.Emails) == 0 {
 			toExplore := item.Name()
-			aux := Directorys{Folder: toExplore, Files: make([]string, 0), SubFolders: nil}
+			aux := Directorys{Folder: toExplore, Files: make([]string, 0), SubFolders: make([]Directorys, 0)}
 			subFolder := DFSFolders(aux)
 			toReturn = append(toReturn, subFolder)
 		} else {
 			for _, email := range req.Emails {
 				if s.Contains(item.Name(), email) {
-					aux := Directorys{Folder: item.Name(), Files: make([]string, 0), SubFolders: nil}
+					aux := Directorys{Folder: item.Name(), Files: make([]string, 0), SubFolders: make([]Directorys, 0)}
 					subFolder := DFSFolders(aux)
 					toReturn = append(toReturn, subFolder)
 				}
