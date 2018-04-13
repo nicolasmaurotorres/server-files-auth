@@ -28,6 +28,7 @@ const (
 	FILE_CLOSE_SUCCESS            = "the file was closes successfully"
 	COPY_FILE_SUCESS              = "the file was copied"
 	COPY_FOLDER_SUCCESS           = "the folder was copied"
+	GET_FILES_SUCCESS             = "the users getted successfully"
 	ERROR_USER_ALREADY_LOGUED     = "user already logged"
 	ERROR_BAD_FORMED_EMAIL        = "error bad formed email"
 	ERROR_BAD_FORMED_PASSWORD     = "the password is empty"

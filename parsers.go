@@ -147,6 +147,21 @@ func (p *parser) AdminAddUser(r *http.Request) (NewUserRequest, error) {
 	return newUserRequest, nil
 }
 
+func (p *parser) AdminViewRequest(r *http.Request) (JwtToken, error) {
+	var token JwtToken
+	err := json.NewDecoder(r.Body).Decode(&token)
+	defer r.Body.Close()
+	if err != nil {
+		fmt.Println(err)
+		return token, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errorMessage := isValidToken(token.Token, true)
+	if errorMessage != nil {
+		return token, errorMessage
+	}
+	return token, nil
+}
+
 type JwtToken struct {
 	Token string `json:"token"`
 }

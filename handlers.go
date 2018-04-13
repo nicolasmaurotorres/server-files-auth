@@ -193,6 +193,26 @@ func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
+func AdminViewUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	_, errToken := GetParserInstance().AdminViewRequest(r)
+	var response ResponsePlademaDirectorys
+	if errToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		response.Status = http.StatusBadRequest
+		response.Message = errToken.Error()
+	} else {
+		var aux SearchFileRequest
+		directorys := GetDatabaseInstance().PlademaSearchFiles(aux) // traigo todos los datos de todos los usuarios
+		w.WriteHeader(http.StatusOK)
+		response.Message = GET_FILES_SUCCESS
+		response.Status = http.StatusOK
+		response.Folders = directorys
+	}
+	responseJSON, _ := json.Marshal(response)
+	w.Write(responseJSON)
+}
+
 func AddFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	errToken := GetParserInstance().AddFileRequest(r)
@@ -340,7 +360,7 @@ func PlademaSearchFiles(w http.ResponseWriter, r *http.Request) {
 	} else {
 		directorys := GetDatabaseInstance().PlademaSearchFiles(searchFiles)
 		w.WriteHeader(http.StatusOK)
-		response.Message = CREATE_FOLDER_SUCCESS
+		response.Message = GET_FILES_SUCCESS
 		response.Status = http.StatusOK
 		response.Folders = directorys
 	}

@@ -43,6 +43,12 @@ var routes = Routes{
 		"/admin/edit/user",
 		AdminEditUser,
 	},
+	Route{
+		"AdminViewUsers",
+		"POST",
+		"/admin/view/users",
+		AdminViewUsers,
+	},
 	//Doctor and pladema common operations
 	Route{
 		"AddFolder",
