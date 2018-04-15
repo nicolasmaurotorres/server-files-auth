@@ -427,9 +427,9 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 		os.Rename(GetDatabaseInstance().BasePath+req.OldEmail, GetDatabaseInstance().BasePath+req.NewEmail)
 		cleanDataUserEdited(req.OldEmail)
 	}
-	if req.NewPassword != "" && req.OldPassword != req.NewPassword {
+	if req.NewPassword != "" {
 		query := make(map[string]string)
-		if req.NewEmail != req.OldEmail {
+		if req.NewEmail != req.OldEmail { //por si cambio el email
 			query["email"] = req.NewEmail
 		} else {
 			query["email"] = req.OldEmail
@@ -488,6 +488,18 @@ func DFSFolders(acum Directorys) Directorys {
 		}
 	}
 	return acum
+}
+
+func (db *database) AdminViewUsers() []string {
+	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath)
+	var toReturn []string
+	toReturn = make([]string, 0)
+
+	for _, item := range files {
+		toReturn = append(toReturn, item.Name())
+	}
+
+	return toReturn
 }
 
 func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {

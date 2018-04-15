@@ -441,11 +441,9 @@ func (p *parser) DoctorCloseFileRequest(r *http.Request) (CloseFileRequest, erro
 
 type EditUserRequest struct {
 	Token       string `json:"token"`
-	OldPassword string `json:"oldpassword"`
 	OldEmail    string `json:"oldemail"`
-	NewName     string `json:"newname"`
-	NewPassword string `json:"newpassword"`
 	NewEmail    string `json:"newemail"`
+	NewPassword string `json:"newpassword"`
 }
 
 func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) {
@@ -458,9 +456,6 @@ func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) 
 	errToken := isValidToken(toReturn.Token, true)
 	if errToken != nil {
 		return toReturn, errToken
-	}
-	if govalidator.IsNull(toReturn.OldPassword) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_PASSWORD)
 	}
 	_, errOldUser := GetDatabaseInstance().GetUserByEmail(toReturn.OldEmail)
 	if errOldUser != nil {

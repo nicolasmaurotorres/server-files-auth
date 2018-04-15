@@ -193,21 +193,26 @@ func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
+type ResponseAdminUsers struct {
+	Message string   `json:"message"`
+	Status  int      `json:"status"`
+	Users   []string `json:"users"`
+}
+
 func AdminViewUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, errToken := GetParserInstance().AdminViewRequest(r)
-	var response ResponsePlademaDirectorys
+	var response ResponseAdminUsers
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Status = http.StatusBadRequest
 		response.Message = errToken.Error()
 	} else {
-		var aux SearchFileRequest
-		directorys := GetDatabaseInstance().PlademaSearchFiles(aux) // traigo todos los datos de todos los usuarios
+		users := GetDatabaseInstance().AdminViewUsers() // traigo todos los datos de todos los usuarios
 		w.WriteHeader(http.StatusOK)
 		response.Message = GET_FILES_SUCCESS
 		response.Status = http.StatusOK
-		response.Folders = directorys
+		response.Users = users
 	}
 	responseJSON, _ := json.Marshal(response)
 	w.Write(responseJSON)
