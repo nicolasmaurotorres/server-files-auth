@@ -42,8 +42,14 @@ Referential Links:
 - defaults users only for testing
 	* db.users.insert({"category":2,"email":"admin@admin.com","password":"admin"})
 	* db.users.insert({"category":1,"email":"pladema@pladema.com","password":"pladema"})
-	* db.users.insert({"category":0,"email":"doctor@doctor.com","password":"doctor"})
+
 	
+	* db.users.insert({"category":0,"email":"doctor2@doctor2.com","password":"doctor"})
+	* db.users.insert({"category":0,"email":"doctor5@doctor.com","password":"doctor"})
+	* db.users.insert({"category":0,"email":"doctor@doctor.com","password":"doctor"})
+
+
+
 **** Installation of Golang ****
 - sudo apt-get update
 - sudo apt-get -y upgrade

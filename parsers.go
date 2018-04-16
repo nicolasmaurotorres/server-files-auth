@@ -265,8 +265,9 @@ func (p *parser) AdminDeleteUserRequest(r *http.Request) (DelUserRequest, error)
 	if !govalidator.IsEmail(toReturn.Email) {
 		return toReturn, errors.New(ERROR_BAD_FORMED_EMAIL)
 	}
+	fmt.Println(toReturn.Email)
 	if !GetDatabaseInstance().ExistsEmail(toReturn.Email) {
-		return toReturn, errors.New(ERROR_EMAIL_ALREADY_EXISTS)
+		return toReturn, errors.New(ERROR_EMAIL_NOT_EXISTS)
 	}
 	return toReturn, nil
 }
