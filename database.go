@@ -490,15 +490,26 @@ func DFSFolders(acum Directorys) Directorys {
 	return acum
 }
 
-func (db *database) AdminViewUsers() []string {
-	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath)
-	var toReturn []string
-	toReturn = make([]string, 0)
+type UserCategory struct {
+	Email    string `json:"email"`
+	Category int    `json:"category"`
+}
 
-	for _, item := range files {
-		toReturn = append(toReturn, item.Name())
+// devuelve TODOS
+func (db *database) AdminViewUsers() []UserCategory {
+	var toReturn = make([]UserCategory, 0)
+	session := GetDatabaseInstance().getSession()
+	defer session.Close()
+	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
+	query := bson.M{"category": bson.M{"$ne": REQUEST_ADMIN}}
+	result := collection.Find(query)
+	users := result.Iter()
+	user := UserCategory{}
+	for users.Next(&user) {
+		if user.Category != REQUEST_ADMIN {
+			toReturn = append(toReturn, UserCategory{Email: user.Email, Category: user.Category})
+		}
 	}
-
 	return toReturn
 }
 

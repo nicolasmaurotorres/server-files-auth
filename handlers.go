@@ -194,9 +194,9 @@ func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type ResponseAdminUsers struct {
-	Message string   `json:"message"`
-	Status  int      `json:"status"`
-	Users   []string `json:"users"`
+	Message string         `json:"message"`
+	Status  int            `json:"status"`
+	Users   []UserCategory `json:"users"`
 }
 
 func AdminViewUsers(w http.ResponseWriter, r *http.Request) {
