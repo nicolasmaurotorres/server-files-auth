@@ -206,23 +206,10 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 	}
 
 	if userDeleted.Category == REQUEST_DOCTOR {
-		errDelFolder := os.RemoveAll(GetDatabaseInstance().BasePath + user.Email) //error deleting the folder
+		os.RemoveAll(GetDatabaseInstance().BasePath + user.Email) //error deleting the folder
 		// delete the opened files
 		tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_DOCTOR)
-		files := OpenedFiles[tokenUser]
 		delete(OpenedFiles, tokenUser)
-
-		if errDelFolder != nil {
-			if theValue != nil {
-				LogedUsers[tokenDeletedUser] = theValue //"rollback"
-			}
-			OpenedFiles[tokenUser] = files                //add the opened files
-			errRollBack := collection.Insert(userDeleted) // re-insert the deleted user
-			if errRollBack != nil {
-				return errors.New(ERROR_SERVER)
-			}
-			return errDelFolder
-		}
 	}
 	return nil
 }

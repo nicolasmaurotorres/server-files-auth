@@ -202,19 +202,22 @@ type ResponseAdminUsers struct {
 func AdminViewUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, errToken := GetParserInstance().AdminViewRequest(r)
-	var response ResponseAdminUsers
+	var responseOK ResponseAdminUsers
+	var responseBAD Response
+	var responseJSON []byte
 	if errToken != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		response.Status = http.StatusBadRequest
-		response.Message = errToken.Error()
+		responseBAD.Status = http.StatusBadRequest
+		responseBAD.Message = errToken.Error()
+		responseJSON, _ = json.Marshal(responseBAD)
 	} else {
 		users := GetDatabaseInstance().AdminViewUsers() // traigo todos los datos de todos los usuarios
 		w.WriteHeader(http.StatusOK)
-		response.Message = GET_FILES_SUCCESS
-		response.Status = http.StatusOK
-		response.Users = users
+		responseOK.Message = GET_FILES_SUCCESS
+		responseOK.Status = http.StatusOK
+		responseOK.Users = users
+		responseJSON, _ = json.Marshal(responseOK)
 	}
-	responseJSON, _ := json.Marshal(response)
 	w.Write(responseJSON)
 }
 
