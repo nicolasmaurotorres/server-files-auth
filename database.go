@@ -480,8 +480,10 @@ func DFSFolders(acum Directorys) Directorys {
 type UserCategory struct {
 	Email    string `json:"email"`
 	Category int    `json:"category"`
+	Password string `json:"password"`
 }
 
+//TODO: hacer un password digest para no enviar directamente la contraseña por request para evitar problemas de seguridad
 // devuelve TODOS
 func (db *database) AdminViewUsers() []UserCategory {
 	var toReturn = make([]UserCategory, 0)
@@ -494,7 +496,7 @@ func (db *database) AdminViewUsers() []UserCategory {
 	user := UserCategory{}
 	for users.Next(&user) {
 		if user.Category != REQUEST_ADMIN {
-			toReturn = append(toReturn, UserCategory{Email: user.Email, Category: user.Category})
+			toReturn = append(toReturn, UserCategory{Email: user.Email, Category: user.Category, Password: user.Password})
 		}
 	}
 	return toReturn
