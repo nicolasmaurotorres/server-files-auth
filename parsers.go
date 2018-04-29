@@ -462,9 +462,6 @@ func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) 
 	if errOldUser != nil {
 		return toReturn, errOldUser
 	}
-	if toReturn.NewEmail != "" && !govalidator.IsEmail(toReturn.NewEmail) {
-		return toReturn, errors.New(ERROR_BAD_FORMED_EMAIL)
-	}
 	return toReturn, nil
 }
 

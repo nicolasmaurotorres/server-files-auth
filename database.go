@@ -397,36 +397,37 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 	session := GetDatabaseInstance().getSession()
 	defer session.Close()
 	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
-	if req.NewEmail != "" && req.NewEmail != req.OldEmail {
+	userDBO, _ := GetDatabaseInstance().GetUserByEmail(req.OldEmail) // obtengo el usuario de la DB
+	if req.NewEmail != "" && req.NewEmail != userDBO.Email {
 		// compruebo si el nuevo email NO existe en la DB
 		if GetDatabaseInstance().ExistsEmail(req.NewEmail) {
 			return errors.New(ERROR_EMAIL_ALREADY_EXISTS)
 		}
 		//actualizo el email en la db
 		query := make(map[string]string)
-		query["email"] = req.OldEmail
+		query["email"] = userDBO.Email
 		modified := bson.M{"$set": bson.M{"email": req.NewEmail}}
 		errUpdate := collection.Update(query, modified)
 		if errUpdate != nil {
 			return errUpdate
 		}
 		//renombro la carpeta
-		os.Rename(GetDatabaseInstance().BasePath+req.OldEmail, GetDatabaseInstance().BasePath+req.NewEmail)
-		cleanDataUserEdited(req.OldEmail)
+		os.Rename(GetDatabaseInstance().BasePath+userDBO.Email, GetDatabaseInstance().BasePath+req.NewEmail)
+		cleanDataUserEdited(userDBO.Email)
 	}
-	if req.NewPassword != "" {
+	if req.NewPassword != "" && userDBO.Password != req.NewPassword {
 		query := make(map[string]string)
-		if req.NewEmail != req.OldEmail { //por si cambio el email
+		if req.NewEmail != userDBO.Email { //por si cambio el email
 			query["email"] = req.NewEmail
 		} else {
-			query["email"] = req.OldEmail
+			query["email"] = userDBO.Email
 		}
 		update := bson.M{"$set": bson.M{"password": req.NewPassword}}
 		errUpdate := collection.Update(query, update)
 		if errUpdate != nil {
 			return errUpdate
 		}
-		cleanDataUserEdited(req.OldEmail)
+		cleanDataUserEdited(userDBO.Email)
 	}
 	return nil
 }
