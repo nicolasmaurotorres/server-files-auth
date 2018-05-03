@@ -398,6 +398,15 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 	defer session.Close()
 	collection := session.DB(GetDatabaseInstance().DataBaseName).C(GetDatabaseInstance().CollectionUsers)
 	userDBO, _ := GetDatabaseInstance().GetUserByEmail(req.OldEmail) // obtengo el usuario de la DB
+	fmt.Println("usuario db")
+	fmt.Println(userDBO.Email)
+	fmt.Println(userDBO.Password)
+	fmt.Println(userDBO.Category)
+	fmt.Println("usuario parametro")
+	fmt.Println(req.OldEmail)
+	fmt.Println(req.NewPassword)
+	fmt.Println(req.NewEmail)
+	fmt.Println(req.NewCategory)
 	if req.NewEmail != "" && req.NewEmail != userDBO.Email {
 		// compruebo si el nuevo email NO existe en la DB
 		if GetDatabaseInstance().ExistsEmail(req.NewEmail) {
@@ -417,12 +426,46 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 	}
 	if req.NewPassword != "" && userDBO.Password != req.NewPassword {
 		query := make(map[string]string)
-		if req.NewEmail != userDBO.Email { //por si cambio el email
+		if req.NewEmail != userDBO.Email && req.NewEmail != "" { //por si cambio el email
 			query["email"] = req.NewEmail
 		} else {
 			query["email"] = userDBO.Email
 		}
 		update := bson.M{"$set": bson.M{"password": req.NewPassword}}
+		errUpdate := collection.Update(query, update)
+		if errUpdate != nil {
+			return errUpdate
+		}
+		cleanDataUserEdited(userDBO.Email)
+	}
+	if req.NewCategory != -1 && userDBO.Category != req.NewCategory {
+		email := ""
+		if req.NewEmail != userDBO.Email && req.NewEmail != "" { // controlo si cambio el email
+			email = req.NewEmail
+		} else {
+			email = userDBO.Email
+		} // 1 0
+		if req.NewCategory == REQUEST_DOCTOR {
+			fmt.Println("cambio de pladema a doctor")
+			// cambio de pladema --> doctor
+			// creo la carpeta al nuevo doctor
+			errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email, GetDatabaseInstance().ModePermitions)
+			if errCreate != nil { //error al borrar
+				return errCreate
+			}
+		} else {
+			fmt.Println("cambio de doctor a pladema")
+			// cambio de doctor --> pladema
+			// borro la carpeta del que era doctor
+			errDelete := os.RemoveAll(GetDatabaseInstance().BasePath + email)
+			if errDelete != nil { //error al borrar
+				return errDelete
+			}
+		}
+		// actualizo en la db la categoria
+		query := make(map[string]string)
+		query["email"] = email
+		update := bson.M{"$set": bson.M{"category": req.NewCategory}}
 		errUpdate := collection.Update(query, update)
 		if errUpdate != nil {
 			return errUpdate

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -183,6 +184,7 @@ func AdminEditUser(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			response.Status = http.StatusBadRequest
 			response.Message = err.Error()
+			fmt.Println("error logica")
 		} else {
 			w.WriteHeader(http.StatusOK)
 			response.Status = http.StatusOK

@@ -445,6 +445,7 @@ type EditUserRequest struct {
 	OldEmail    string `json:"oldemail"`
 	NewEmail    string `json:"newemail"`
 	NewPassword string `json:"newpassword"`
+	NewCategory int    `json:"newcategory"`
 }
 
 func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) {
