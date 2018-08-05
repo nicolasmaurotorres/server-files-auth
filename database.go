@@ -265,6 +265,7 @@ func (db *database) AddFile(r *http.Request) error {
 	toReturn.Folder = r.FormValue("folder")
 	toReturn.File = handler.Filename
 	path := getPathOperation(&toReturn)
+	fmt.Println(path)
 	if _, err := os.Stat(path); err == nil {
 		return errors.New(ERROR_FILE_ALREADY_EXISTS)
 	}
@@ -275,7 +276,6 @@ func (db *database) AddFile(r *http.Request) error {
 	defer f.Close()
 	_, errCopy := io.Copy(f, file) //copio lo del file del request al nuevo lugar
 	if errCopy != nil {
-
 		return errCopy
 	}
 	return nil

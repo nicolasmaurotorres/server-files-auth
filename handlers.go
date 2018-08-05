@@ -1,12 +1,13 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
-	"strconv"
 	s "strings"
 	"time"
 
@@ -16,6 +17,53 @@ import (
 type Response struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
+}
+
+func ZipFiles(filename string, files []string) error {
+
+	newfile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newfile.Close()
+
+	zipWriter := zip.NewWriter(newfile)
+	defer zipWriter.Close()
+
+	// Add files to zip
+	for _, file := range files {
+
+		zipfile, err := os.Open(file)
+		if err != nil {
+			return err
+		}
+		defer zipfile.Close()
+
+		// Get the file information
+		info, err := zipfile.Stat()
+		if err != nil {
+			return err
+		}
+
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+
+		// Change to deflate to gain better compression
+		// see http://golang.org/pkg/archive/zip/#pkg-constants
+		header.Method = zip.Deflate
+
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(writer, zipfile)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func generateTokenWithoutControl(user UserLoginRequest, cat int) string {
@@ -591,25 +639,37 @@ func PlademaGetFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//Check if file exists and open
 		Openfile, err := os.Open(GetDatabaseInstance().BasePath + getFileRequest.File)
-		modtime := time.Now()
 		defer Openfile.Close() //Close after function return
 		if err != nil {
-			//File not found, send 404
-			http.Error(w, "File not found.", 404)
+			http.Error(w, "File not found.", 404) //File not found, send 404
 		} else {
-			w.Header().Set("Content-Type", "application/octet-stream")
 			slices := s.Split(getFileRequest.File, GetDatabaseInstance().Separator)
-			FIleName := slices[len(slices)-1] //obtengo el nombre del archivo
-			FileHeader := make([]byte, 512)
-			Openfile.Read(FileHeader)
-
-			FileContentType := http.DetectContentType(FileHeader)
-			FileStat, _ := Openfile.Stat()                     //Get info from file
-			FileSize := strconv.FormatInt(FileStat.Size(), 10) //Get file size as a string
-			w.Header().Add("Content-Disposition", "attachment; filename="+FIleName)
-			w.Header().Add("Content-Type", FileContentType)
-			w.Header().Add("Content-Length", FileSize)
-			http.ServeContent(w, r, FIleName, modtime, Openfile)
+			tempFolder := ""
+			for j := 0; j <= len(slices)-2; j++ {
+				tempFolder = tempFolder + slices[j] + GetDatabaseInstance().Separator
+			}
+			fmt.Println(tempFolder)
+			FileWithExtention := slices[len(slices)-1]   // obtengo el nombre del archivo con extension
+			partsFile := s.Split(FileWithExtention, ".") // partes del archivo
+			FileName := partsFile[0]                     // file name
+			files := []string{GetDatabaseInstance().BasePath + getFileRequest.File}
+			output := GetDatabaseInstance().BasePath + tempFolder + FileName + ".zip"
+			fmt.Println(output)
+			err := ZipFiles(output, files)
+			if err != nil {
+				http.Error(w, "Server Error Compressing", 500)
+			} else {
+				file, err1 := os.Open(output)
+				defer file.Close()
+				if err1 != nil {
+					http.Error(w, "Server Error Searching Compressed file", 500)
+				} else {
+					w.Header().Set("Content-Type", "application/zip")
+					w.Header().Set("Content-Disposition", "attachment; filename='"+FileName+".zip'")
+					http.ServeFile(w, r, output)
+					defer os.Remove(output)
+				}
+			}
 		}
 	}
 }

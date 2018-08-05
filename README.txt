@@ -41,12 +41,11 @@ Referential Links:
 	* db.createCollection("users")
 - defaults users only for testing
 	* db.users.insert({"category":2,"email":"admin","password":"admin"})
-	* db.users.insert({"category":1,"email":"pladema@pladema.com","password":"pladema"})
-
+	* db.users.insert({"category":1,"email":"pladema","password":"pladema"})
+	* db.users.insert({"category":0,"email":"doctor","password":"doctor"})
 	
+	* db.users.insert({"category":0,"email":"doctor1@doctor1.com","password":"doctor"})
 	* db.users.insert({"category":0,"email":"doctor2@doctor2.com","password":"doctor"})
-	* db.users.insert({"category":0,"email":"doctor5@doctor.com","password":"doctor"})
-	* db.users.insert({"category":0,"email":"doctor@doctor.com","password":"doctor"})
 
 
 
@@ -69,6 +68,7 @@ Referential Links:
 	func main() {
     		fmt.Printf("Welcome To ITzGeek\n")
 	}
+- go get -u golang.org/x/net/html/charset
 	
 ** modifiyed file ** - snavarro89
 - package gopkg.in/mgo.v2
