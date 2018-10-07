@@ -85,7 +85,7 @@ func (db *database) AdminAddUser(user NewUserRequest) error {
 	switch user.Category {
 	case REQUEST_DOCTOR:
 		userDBO.Category = REQUEST_DOCTOR
-		os.Mkdir(GetDatabaseInstance().BasePath+userDBO.Email, GetDatabaseInstance().ModePermitions)
+		os.MkdirAll(GetDatabaseInstance().BasePath+userDBO.Email, GetDatabaseInstance().ModePermitions)
 		break
 	case REQUEST_PLADEMA:
 		userDBO.Category = REQUEST_PLADEMA
@@ -140,7 +140,7 @@ func getPathOperation(req CommonOperation) string {
 func (db *database) AddFolder(req AddFolderRequest) error {
 	param := &req
 	path := getPathOperation(param)
-	errCreate := os.Mkdir(path, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
+	errCreate := os.MkdirAll(path, GetDatabaseInstance().ModePermitions) //checkeo si puedo crear la carpeta
 	if errCreate != nil {
 		return errCreate // no se pudo crear la carpeta
 	}
@@ -449,7 +449,7 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 			fmt.Println("cambio de pladema a doctor")
 			// cambio de pladema --> doctor
 			// creo la carpeta al nuevo doctor
-			errCreate := os.Mkdir(GetDatabaseInstance().BasePath+email, GetDatabaseInstance().ModePermitions)
+			errCreate := os.MkdirAll(GetDatabaseInstance().BasePath+email, GetDatabaseInstance().ModePermitions)
 			if errCreate != nil { //error al borrar
 				return errCreate
 			}
@@ -628,7 +628,7 @@ func CopyDir(source string, dest string) (err error) {
 
 	// create dest dir
 
-	err = os.MkdirAll(dest, fi.Mode())
+	err = os.MkdirAllAll(dest, fi.Mode())
 	if err != nil {
 		return err
 	}
