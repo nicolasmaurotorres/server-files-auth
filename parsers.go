@@ -91,7 +91,7 @@ func (p *parser) UserLoginRequest(r *http.Request, cat int) (UserLoginRequest, e
 	defer r.Body.Close()
 	if err == nil { // no hay errores de json mal formado
 		if cat != REQUEST_ADMIN {
-			// usuario pladema o doctor
+			// usuario tecnico o especialista
 			if !govalidator.IsEmail(user.Email) {
 				return user, errors.New(ERROR_BAD_FORMED_EMAIL)
 			}
@@ -115,7 +115,7 @@ type NewUserRequest struct {
 	Token    string `json:"token"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Category int    `json:"category"` // 0 doctor, 1 pladema
+	Category int    `json:"category"` // 0 specialist, 1 technician
 }
 
 // GetNewUserJSONRequest returns a user with valid data
@@ -141,7 +141,7 @@ func (p *parser) AdminAddUser(r *http.Request) (NewUserRequest, error) {
 	if govalidator.IsNull(newUserRequest.Password) {
 		return newUserRequest, errors.New(ERROR_BAD_FORMED_PASSWORD)
 	}
-	if !(newUserRequest.Category == REQUEST_DOCTOR || newUserRequest.Category == REQUEST_PLADEMA) {
+	if !(newUserRequest.Category == REQUEST_SPECIALIST || newUserRequest.Category == REQUEST_TECHNICIAN) {
 		return newUserRequest, errors.New(ERROR_BAD_CATEGORY)
 	}
 	return newUserRequest, nil
@@ -353,23 +353,23 @@ func (p *parser) DeleteFileRequest(r *http.Request) (DelFileRequest, error) {
 	return toReturn, nil
 }
 
-type RenameFileDoctorRequest struct {
+type RenameFileSpecialistRequest struct {
 	Token   string `json:"token"`
 	FileOld string `json:"fileold"`
 	FileNew string `json:"filenew"`
 	Folder  string `json:"folder"`
 }
 
-func (rfr *RenameFileDoctorRequest) GetToken() string {
+func (rfr *RenameFileSpecialistRequest) GetToken() string {
 	return rfr.Token
 }
 
-func (rfr *RenameFileDoctorRequest) GetFolder() string {
+func (rfr *RenameFileSpecialistRequest) GetFolder() string {
 	return rfr.Folder
 }
 
-func (p *parser) RenameFileRequest(r *http.Request) (RenameFileDoctorRequest, error) {
-	var toReturn RenameFileDoctorRequest
+func (p *parser) RenameFileRequest(r *http.Request) (RenameFileSpecialistRequest, error) {
+	var toReturn RenameFileSpecialistRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
 	if err != nil {
@@ -394,7 +394,7 @@ type OpenFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func (p *parser) DoctorOpenFileRequest(r *http.Request) (OpenFileRequest, error) {
+func (p *parser) SpecialistOpenFileRequest(r *http.Request) (OpenFileRequest, error) {
 	var toReturn OpenFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -420,7 +420,7 @@ type CloseFileRequest struct {
 	Folder string `json:"folder"`
 }
 
-func (p *parser) DoctorCloseFileRequest(r *http.Request) (CloseFileRequest, error) {
+func (p *parser) SpecialistCloseFileRequest(r *http.Request) (CloseFileRequest, error) {
 	var toReturn CloseFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	defer r.Body.Close()
@@ -466,7 +466,7 @@ func (p *parser) AdminEditUserRequest(r *http.Request) (EditUserRequest, error) 
 	return toReturn, nil
 }
 
-func (p *parser) DoctorGetFilesRequest(r *http.Request) (JwtToken, error) {
+func (p *parser) SpecialistGetFilesRequest(r *http.Request) (JwtToken, error) {
 	var toReturn JwtToken
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	if err != nil {
@@ -484,7 +484,7 @@ type SearchFileRequest struct {
 	Emails []string `json:"emails"` // si los emails estan vacios, traigo todos los emails
 }
 
-func (p *parser) PlademaSearchFilesRequest(r *http.Request) (SearchFileRequest, error) {
+func (p *parser) TechnicianSearchFilesRequest(r *http.Request) (SearchFileRequest, error) {
 	var toReturn SearchFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	if err != nil {
@@ -513,11 +513,11 @@ func (cfr *ChangeFileRequest) GetFolder() string {
 }
 
 func (cfr *ChangeFileRequest) GetDestinationFolder() string {
-	if LogedUsers[cfr.Token].Category == REQUEST_DOCTOR {
+	if LogedUsers[cfr.Token].Category == REQUEST_SPECIALIST {
 		email := LogedUsers[cfr.Token].Email
 		return GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + cfr.NewLocation
 	}
-	return GetDatabaseInstance().BasePath + cfr.NewLocation //el email puede ser distinto si es un usuario pladema
+	return GetDatabaseInstance().BasePath + cfr.NewLocation //el email puede ser distinto si es un usuario tecnico
 }
 
 func (p *parser) CopyFileRequest(r *http.Request) (ChangeFileRequest, error) {
@@ -554,7 +554,7 @@ func (cft *CopyFolderRequest) GetFolder() string {
 }
 
 func (cft *CopyFolderRequest) GetDestinationFolder() string {
-	if LogedUsers[cft.Token].Category == REQUEST_DOCTOR {
+	if LogedUsers[cft.Token].Category == REQUEST_SPECIALIST {
 		email := LogedUsers[cft.Token].Email
 		return GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + cft.NewLocation
 	}
@@ -595,7 +595,7 @@ type GetFileRequest struct {
 	File  string `json:"file"`
 }
 
-func (p *parser) PlademaGetFile(r *http.Request) (GetFileRequest, error) {
+func (p *parser) TechnicianGetFile(r *http.Request) (GetFileRequest, error) {
 	var toReturn GetFileRequest
 	err := json.NewDecoder(r.Body).Decode(&toReturn)
 	if err != nil {

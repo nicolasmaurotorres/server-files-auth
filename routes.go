@@ -49,7 +49,7 @@ var routes = Routes{
 		"/admin/view/users",
 		AdminViewUsers,
 	},
-	//Doctor and pladema common operations
+	//Specialist and technician common operations
 	Route{
 		"AddFolder",
 		"POST",
@@ -81,60 +81,60 @@ var routes = Routes{
 		CopyFile,
 	},
 	Route{
-		"CopyFolder", //falta test doctor
+		"CopyFolder", //falta test Specialist
 		"POST",
 		"/copy/folder/to/location",
 		CopyFolder,
 	},
 	Route{
-		"DoctorAddFile",
+		"SpecialistAddFile",
 		"POST",
 		"/add/file",
 		AddFile,
 	},
 	Route{
-		"DoctorDeleteFile",
+		"SpecialistDeleteFile",
 		"POST",
 		"/delete/file",
 		DeleteFile,
 	},
-	//Doctor specific operations
+	//Specialist specific operations
 	Route{
-		"DoctorGetFiles", //ok
+		"SpecialistGetFiles", //ok
 		"POST",
-		"/doctor/get/files",
-		DoctorGetFiles,
+		"/specialist/get/files",
+		SpecialistGetFiles,
 	},
 	Route{
 		"openFile", // ok
 		"POST",
-		"/doctor/open/file",
-		DoctorOpenFile,
+		"/specialist/open/file",
+		SpecialistOpenFile,
 	},
 	Route{
 		"closeFile", // ok
 		"POST",
-		"/doctor/close/file",
-		DoctorCloseFile,
+		"/specialist/close/file",
+		SpecialistCloseFile,
 	},
-	//Pladema specific operations
+	//Technician specific operations
 	Route{
-		"plademaSearchFiles", // ok
+		"technicianSearchFiles", // ok
 		"POST",
-		"/pladema/search/files",
-		PlademaSearchFiles,
-	},
-	Route{
-		"plademaGetAllEmails", // ok
-		"POST",
-		"/pladema/get/emails",
-		PlademaGetEmails,
+		"/technician/search/files",
+		TechnicianSearchFiles,
 	},
 	Route{
-		"plademaGetFile",
+		"technicianGetAllEmails", // ok
 		"POST",
-		"/pladema/get/file",
-		PlademaGetFile,
+		"/technician/get/emails",
+		TechnicianGetEmails,
+	},
+	Route{
+		"TechnicianGetFile",
+		"POST",
+		"/technician/get/file",
+		TechnicianGetFile,
 	},
 	// Common Operations
 	Route{

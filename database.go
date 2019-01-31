@@ -83,12 +83,12 @@ func (db *database) AdminAddUser(user NewUserRequest) error {
 	userDBO.Email = user.Email
 	userDBO.Password = user.Password
 	switch user.Category {
-	case REQUEST_DOCTOR:
-		userDBO.Category = REQUEST_DOCTOR
+	case REQUEST_SPECIALIST:
+		userDBO.Category = REQUEST_SPECIALIST
 		os.MkdirAll(GetDatabaseInstance().BasePath+userDBO.Email, GetDatabaseInstance().ModePermitions)
 		break
-	case REQUEST_PLADEMA:
-		userDBO.Category = REQUEST_PLADEMA
+	case REQUEST_TECHNICIAN:
+		userDBO.Category = REQUEST_TECHNICIAN
 	default:
 		log.Fatal(ERROR_SERVER)
 		return errors.New(ERROR_SERVER)
@@ -128,11 +128,11 @@ func (db *database) GetUserByEmail(email string) (UserDBO, error) {
 
 func getPathOperation(req CommonOperation) string {
 	var path string
-	if LogedUsers[req.GetToken()].Category == REQUEST_DOCTOR {
+	if LogedUsers[req.GetToken()].Category == REQUEST_SPECIALIST {
 		email := LogedUsers[req.GetToken()].Email
 		path = GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator + req.GetFolder()
 	} else {
-		path = GetDatabaseInstance().BasePath + req.GetFolder() //el pladema ya me manda el path con el email
+		path = GetDatabaseInstance().BasePath + req.GetFolder() //el tecnico ya me manda el path con el email
 	}
 	return path
 }
@@ -205,10 +205,10 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 		delete(LogedUsers, tokenDeletedUser) // delete if user loged
 	}
 
-	if userDeleted.Category == REQUEST_DOCTOR {
+	if userDeleted.Category == REQUEST_SPECIALIST {
 		os.RemoveAll(GetDatabaseInstance().BasePath + user.Email) //error deleting the folder
 		// delete the opened files
-		tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_DOCTOR)
+		tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: userDeleted.Email, Password: userDeleted.Password}, REQUEST_SPECIALIST)
 		delete(OpenedFiles, tokenUser)
 	}
 	return nil
@@ -216,18 +216,18 @@ func (db *database) AdminDeleteUser(user DelUserRequest) error {
 
 func (db *database) RenameFolder(req RenameFolderRequest) error {
 	tokenUser := req.Token
-	if LogedUsers[req.Token].Category == REQUEST_PLADEMA {
-		//el usuario que genero esta operacion, es un usuario pladema, tengo que generar el token del doctor al cual voy a renombrar la carpeta
+	if LogedUsers[req.Token].Category == REQUEST_TECHNICIAN {
+		//el usuario que genero esta operacion, es un usuario tecnico, tengo que generar el token del especialista al cual voy a renombrar la carpeta
 		slices := s.Split(req.OldFolder, GetDatabaseInstance().Separator)
 		if GetDatabaseInstance().ExistsEmail(slices[0]) {
 			user, _ := GetDatabaseInstance().GetUserByEmail(slices[0])
-			token := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_DOCTOR)
+			token := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_SPECIALIST)
 			tokenUser = token
 		} else {
 			return errors.New(ERROR_EMAIL_NOT_EXISTS) // el email del path no existe
 		}
 	}
-	//obtengo los archivos abiertos del usuario doctor
+	//obtengo los archivos abiertos del usuario specialist
 	openedFilesForUser, ptrs := OpenedFiles[tokenUser]
 	email := LogedUsers[tokenUser].Email
 	found := false
@@ -298,14 +298,14 @@ func (db *database) DeleteFile(req DelFileRequest) error {
 	return nil
 }
 
-func (db *database) RenameFile(req RenameFileDoctorRequest) error {
+func (db *database) RenameFile(req RenameFileSpecialistRequest) error {
 	token := req.Token
 	path := getPathOperation(&req)
-	if LogedUsers[req.Token].Category == REQUEST_PLADEMA {
+	if LogedUsers[req.Token].Category == REQUEST_TECHNICIAN {
 		slices := s.Split(path, GetDatabaseInstance().Separator)
 		if GetDatabaseInstance().ExistsEmail(slices[0]) {
 			user, _ := GetDatabaseInstance().GetUserByEmail(slices[0])
-			tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_DOCTOR)
+			tokenUser := generateTokenWithoutControl(UserLoginRequest{Email: user.Email, Password: user.Password}, REQUEST_SPECIALIST)
 			token = tokenUser
 		} else {
 			return errors.New(ERROR_EMAIL_NOT_EXISTS) // el email del path no existe
@@ -334,7 +334,7 @@ func (db *database) RenameFile(req RenameFileDoctorRequest) error {
 	return nil
 }
 
-func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
+func (db *database) SpecialistOpenFile(req OpenFileRequest) (string, error) {
 	email := LogedUsers[req.Token].Email
 	pathFile := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator
 	if req.Folder == "" { // carpeta base
@@ -347,7 +347,7 @@ func (db *database) DoctorOpenFile(req OpenFileRequest) (string, error) {
 	}
 	files, inMap := OpenedFiles[req.Token]
 	if inMap {
-		// el doctor tiene lagun archivo abierto
+		// el specialist tiene lagun archivo abierto
 		for key, value := range files {
 			fmt.Println("valor " + string(key) + " " + value)
 			if s.Contains(value, req.Folder+GetDatabaseInstance().Separator+req.File) {
@@ -366,7 +366,7 @@ func remove(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
-func (db *database) DoctorCloseFile(req CloseFileRequest) error {
+func (db *database) SpecialistCloseFile(req CloseFileRequest) error {
 	email := LogedUsers[req.Token].Email
 	filePath := GetDatabaseInstance().BasePath + email + GetDatabaseInstance().Separator
 	if req.Folder == "" {
@@ -445,18 +445,12 @@ func (db *database) AdminEditUser(req EditUserRequest) error {
 		} else {
 			email = userDBO.Email
 		} // 1 0
-		if req.NewCategory == REQUEST_DOCTOR {
-			fmt.Println("cambio de pladema a doctor")
-			// cambio de pladema --> doctor
-			// creo la carpeta al nuevo doctor
+		if req.NewCategory == REQUEST_SPECIALIST {
 			errCreate := os.MkdirAll(GetDatabaseInstance().BasePath+email, GetDatabaseInstance().ModePermitions)
 			if errCreate != nil { //error al borrar
 				return errCreate
 			}
 		} else {
-			fmt.Println("cambio de doctor a pladema")
-			// cambio de doctor --> pladema
-			// borro la carpeta del que era doctor
 			errDelete := os.RemoveAll(GetDatabaseInstance().BasePath + email)
 			if errDelete != nil { //error al borrar
 				return errDelete
@@ -498,7 +492,7 @@ type Directorys struct {
 	SubFolders []Directorys
 }
 
-func (db *database) DoctorGetFiles(req JwtToken) Directorys {
+func (db *database) SpecialistGetFiles(req JwtToken) Directorys {
 	email := LogedUsers[req.Token].Email
 	basePath := email
 	base := Directorys{Folder: basePath, Files: make([]string, 0), SubFolders: make([]Directorys, 0)}
@@ -546,7 +540,7 @@ func (db *database) AdminViewUsers() []UserCategory {
 	return toReturn
 }
 
-func (db *database) PlademaSearchFiles(req SearchFileRequest) []Directorys {
+func (db *database) TechnicianSearchFiles(req SearchFileRequest) []Directorys {
 	files, _ := ioutil.ReadDir(GetDatabaseInstance().BasePath)
 	var toReturn []Directorys
 	for _, item := range files {

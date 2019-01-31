@@ -69,11 +69,11 @@ func ZipFiles(filename string, files []string) error {
 func generateTokenWithoutControl(user UserLoginRequest, cat int) string {
 	var key []byte
 	switch cat {
-	case REQUEST_DOCTOR:
-		key = SigningKeyDoctor
+	case REQUEST_SPECIALIST:
+		key = SigningKeySpecialist
 		break
-	case REQUEST_PLADEMA:
-		key = SigningKeyPladema
+	case REQUEST_TECHNICIAN:
+		key = SigningKeyTechnician
 		break
 	case REQUEST_ADMIN:
 		key = SigningKeyAdmin
@@ -102,13 +102,13 @@ func generateToken(user UserLoginRequest, cat int) (JwtToken, error) {
 		return toReturn, errors.New(ERROR_MISSMATCH_USER_PASSWORD)
 	}
 	switch cat {
-	case REQUEST_DOCTOR:
-		key = SigningKeyDoctor
-		category = REQUEST_DOCTOR
+	case REQUEST_SPECIALIST:
+		key = SigningKeySpecialist
+		category = REQUEST_SPECIALIST
 		break
-	case REQUEST_PLADEMA:
-		key = SigningKeyPladema
-		category = REQUEST_PLADEMA
+	case REQUEST_TECHNICIAN:
+		key = SigningKeyTechnician
+		category = REQUEST_TECHNICIAN
 		break
 	case REQUEST_ADMIN:
 		key = SigningKeyAdmin
@@ -295,8 +295,8 @@ func AddFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-// add a file modified by some pladema engeneeir
-func PlademaAddFile(w http.ResponseWriter, r *http.Request) {}
+// add a file modified by some technician engeneeir
+func TechnicianAddFile(w http.ResponseWriter, r *http.Request) {}
 
 // remove a file of the hashtable of opened files
 func DeleteFile(w http.ResponseWriter, r *http.Request) {
@@ -331,16 +331,16 @@ type ResponseDirectorys struct {
 }
 
 // returns all files to visualize
-func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {
+func SpecialistGetFiles(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	getFiles, err := GetParserInstance().DoctorGetFilesRequest(req)
+	getFiles, err := GetParserInstance().SpecialistGetFilesRequest(req)
 	var response ResponseDirectorys
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		folder := GetDatabaseInstance().DoctorGetFiles(getFiles)
+		folder := GetDatabaseInstance().SpecialistGetFiles(getFiles)
 		w.WriteHeader(http.StatusOK)
 		response.Message = "OK"
 		response.Status = http.StatusOK
@@ -351,16 +351,16 @@ func DoctorGetFiles(w http.ResponseWriter, req *http.Request) {
 }
 
 // add to the hashtable the file that is opened
-func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {
+func SpecialistOpenFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	openFileRequest, err := GetParserInstance().DoctorOpenFileRequest(r)
+	openFileRequest, err := GetParserInstance().SpecialistOpenFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		folder, errCreate := GetDatabaseInstance().DoctorOpenFile(openFileRequest)
+		folder, errCreate := GetDatabaseInstance().SpecialistOpenFile(openFileRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -376,16 +376,16 @@ func DoctorOpenFile(w http.ResponseWriter, r *http.Request) {
 }
 
 // remove a file of the hashtable of opened files
-func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
+func SpecialistCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	closeFileRequest, err := GetParserInstance().DoctorCloseFileRequest(r)
+	closeFileRequest, err := GetParserInstance().SpecialistCloseFileRequest(r)
 	var response Response
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		errCreate := GetDatabaseInstance().DoctorCloseFile(closeFileRequest)
+		errCreate := GetDatabaseInstance().SpecialistCloseFile(closeFileRequest)
 		if errCreate != nil {
 			w.WriteHeader(http.StatusForbidden)
 			response.Message = errCreate.Error()
@@ -400,23 +400,23 @@ func DoctorCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-type ResponsePlademaDirectorys struct {
+type ResponseTechnicianDirectorys struct {
 	Message string       `json:"message"`
 	Status  int          `json:"status"`
 	Folders []Directorys `json:"folders"`
 }
 
 // search in the files by some filters on json object and return a json object with the result
-func PlademaSearchFiles(w http.ResponseWriter, r *http.Request) {
+func TechnicianSearchFiles(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	searchFiles, err := GetParserInstance().PlademaSearchFilesRequest(r)
-	var response ResponsePlademaDirectorys
+	searchFiles, err := GetParserInstance().TechnicianSearchFilesRequest(r)
+	var response ResponseTechnicianDirectorys
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		response.Message = err.Error()
 		response.Status = http.StatusBadRequest
 	} else {
-		directorys := GetDatabaseInstance().PlademaSearchFiles(searchFiles)
+		directorys := GetDatabaseInstance().TechnicianSearchFiles(searchFiles)
 		w.WriteHeader(http.StatusOK)
 		response.Message = GET_FILES_SUCCESS
 		response.Status = http.StatusOK
@@ -607,7 +607,7 @@ type ResponseEmails struct {
 	Emails  []string `json:"emails"`
 }
 
-func PlademaGetEmails(w http.ResponseWriter, r *http.Request) {
+func TechnicianGetEmails(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	err := GetParserInstance().GetEmailsRequest(r)
 	var response ResponseEmails
@@ -627,8 +627,8 @@ func PlademaGetEmails(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
-func PlademaGetFile(w http.ResponseWriter, r *http.Request) {
-	getFileRequest, err := GetParserInstance().PlademaGetFile(r)
+func TechnicianGetFile(w http.ResponseWriter, r *http.Request) {
+	getFileRequest, err := GetParserInstance().TechnicianGetFile(r)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		var response Response

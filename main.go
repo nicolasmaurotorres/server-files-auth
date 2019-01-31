@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	REQUEST_DOCTOR  int = 0
-	REQUEST_PLADEMA int = 1
-	REQUEST_ADMIN   int = 2
+	REQUEST_SPECIALIST int = 0
+	REQUEST_TECHNICIAN int = 1
+	REQUEST_ADMIN      int = 2
 
 	VALID_DATA_ENTRY = "valid_data_entry"
 
@@ -44,8 +44,8 @@ const (
 	ERROR_NOT_EXISTING_USER       = "the user does not exists"
 	ERROR_NOT_VALID_TOKEN         = "the token provided is not valid"
 	ERROR_EMAIL_ALREADY_EXISTS    = "the email is already registered in the database"
-	ERROR_INSERT_NEW_DOCTOR       = "error when trying to insert new doctor in the database"
-	ERROR_INSERT_NEW_PLADEMA      = "error when trying to insert new pladema user in the database"
+	ERROR_INSERT_NEW_SPECIALIST   = "error when trying to insert new specialist in the database"
+	ERROR_INSERT_NEW_TECHNICIAN   = "error when trying to insert new technician user in the database"
 	ERROR_NEW_ADMIN               = "there only can be one admin"
 	ERROR_USER_NOT_IN_DB          = "the user data is not in the database"
 	ERROR_MISSMATCH_USER_PASSWORD = "invalid data"
@@ -78,8 +78,8 @@ var TimeoutLogin = 600
 var OpenedFiles = make(map[string][]string)
 var LogedUsers = make(map[string]*Pair)
 var SigningKeyAdmin = []byte("Sup3rS3cr374dm1n")
-var SigningKeyPladema = []byte("S3cr37Sup3rPl4d3m4")
-var SigningKeyDoctor = []byte("Sup4S1cr1tD0ct0r")
+var SigningKeyTechnician = []byte("S3cr37Sup3rPl4d3m4")
+var SigningKeySpecialist = []byte("Sup4S1cr1tD0ct0r")
 
 func main() {
 	// cd $GOPATH/src/github/nicolasmaurotorres/rest-api
