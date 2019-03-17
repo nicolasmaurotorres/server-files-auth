@@ -375,6 +375,53 @@ func SpecialistOpenFile(w http.ResponseWriter, r *http.Request) {
 	w.Write(responseJSON)
 }
 
+func SpecialistDownloadFile(w http.ResponseWriter, r *http.Request) {
+	getFileRequest, err := GetParserInstance().SpecialistGetFile(r)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		var response Response
+		response.Message = err.Error()
+		response.Status = http.StatusBadRequest
+		responseJSON, _ := json.Marshal(response)
+		w.Write(responseJSON)
+	} else {
+		//Check if file exists and open
+		Openfile, err := os.Open(GetDatabaseInstance().BasePath + getFileRequest.File)
+		defer Openfile.Close() //Close after function return
+		if err != nil {
+			http.Error(w, "File not found.", 404) //File not found, send 404
+		} else {
+			slices := s.Split(getFileRequest.File, GetDatabaseInstance().Separator)
+			tempFolder := ""
+			for j := 0; j <= len(slices)-2; j++ {
+				tempFolder = tempFolder + slices[j] + GetDatabaseInstance().Separator
+			}
+			fmt.Println(tempFolder)
+			FileWithExtention := slices[len(slices)-1]   // obtengo el nombre del archivo con extension
+			partsFile := s.Split(FileWithExtention, ".") // partes del archivo
+			FileName := partsFile[0]                     // file name
+			files := []string{GetDatabaseInstance().BasePath + getFileRequest.File}
+			output := GetDatabaseInstance().BasePath + tempFolder + FileName + ".zip"
+			fmt.Println(output)
+			err := ZipFiles(output, files)
+			if err != nil {
+				http.Error(w, "Server Error Compressing", 500)
+			} else {
+				file, err1 := os.Open(output)
+				defer file.Close()
+				if err1 != nil {
+					http.Error(w, "Server Error Searching Compressed file", 500)
+				} else {
+					w.Header().Set("Content-Type", "application/zip")
+					w.Header().Set("Content-Disposition", "attachment; filename='"+FileName+".zip'")
+					http.ServeFile(w, r, output)
+					defer os.Remove(output)
+				}
+			}
+		}
+	}
+}
+
 // remove a file of the hashtable of opened files
 func SpecialistCloseFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

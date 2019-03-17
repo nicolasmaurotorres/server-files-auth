@@ -117,6 +117,12 @@ var routes = Routes{
 		"/specialist/close/file",
 		SpecialistCloseFile,
 	},
+	Route{
+		"closeFile", // ok
+		"POST",
+		"/specialist/download/file",
+		SpecialistDownloadFile,
+	},
 	//Technician specific operations
 	Route{
 		"technicianSearchFiles", // ok
