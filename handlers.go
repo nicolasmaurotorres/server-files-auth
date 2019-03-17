@@ -387,6 +387,7 @@ func SpecialistDownloadFile(w http.ResponseWriter, r *http.Request) {
 	} else {
 		//Check if file exists and open
 		Openfile, err := os.Open(GetDatabaseInstance().BasePath + getFileRequest.File)
+		fmt.Println(GetDatabaseInstance().BasePath + getFileRequest.File)
 		defer Openfile.Close() //Close after function return
 		if err != nil {
 			http.Error(w, "File not found.", 404) //File not found, send 404
