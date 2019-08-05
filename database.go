@@ -40,7 +40,7 @@ func GetDatabaseInstance() *database {
 
 	if initialized == 0 {
 		instance = &database{
-			BasePath:        "/home/maro/Desktop/data/pvw/data/",
+			BasePath:        "/opt/wslink-launcher/shared/",
 			CollectionUsers: "users",
 			DataBaseName:    "tesis",
 			Separator:       string(os.PathSeparator),
@@ -65,7 +65,8 @@ type UserDBO struct {
 }
 
 func (db *database) getSession() *mgo.Session {
-	session, err := mgo.Dial("localhost:27017")
+	session, err := mgo.Dial("database:27017")
+	session.DB("admin").Login("admin", "admin")
 	if err != nil {
 		panic(err)
 	}
