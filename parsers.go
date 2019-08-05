@@ -610,3 +610,19 @@ func (p *parser) TechnicianGetFile(r *http.Request) (GetFileRequest, error) {
 	}
 	return toReturn, nil
 }
+
+func (p *parser) SpecialistGetFile(r *http.Request) (GetFileRequest, error) {
+	var toReturn GetFileRequest
+	err := json.NewDecoder(r.Body).Decode(&toReturn)
+	if err != nil {
+		return toReturn, errors.New(ERROR_NOT_JSON_NEEDED)
+	}
+	errToken := isValidToken(toReturn.Token, true)
+	if errToken != nil {
+		return toReturn, errToken
+	}
+	if govalidator.IsNull(toReturn.File) {
+		return toReturn, errors.New(ERROR_BAD_FORMED_FILE_NAME)
+	}
+	return toReturn, nil
+}
